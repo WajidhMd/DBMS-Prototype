@@ -48,7 +48,7 @@ All pre-seeded demo accounts use password: `password123`
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Quick Start & Execution Guide
 
 ### Prerequisites
 - Node.js (v18+)
@@ -58,10 +58,66 @@ All pre-seeded demo accounts use password: `password123`
 
 ---
 
-### Step 1: Database Setup (For Live DB Servers)
+### 🐧 Running on Linux & macOS
+
+#### Option A: 1-Click Bash Startup Script (Recommended)
+You can start both backend (Port 5000) and frontend (Port 5173) simultaneously on Linux/macOS using the automated startup script:
+
+```bash
+# Make script executable and run
+chmod +x start.sh
+./start.sh
+```
+*Or run via npm:*
+```bash
+npm run start:linux
+```
+
+#### Option B: Manual Linux Command Execution
+Open two terminal windows:
+
+**Terminal 1 (Backend REST API):**
+```bash
+cd backend
+npm install
+npm start
+```
+*Backend API server runs at `http://localhost:5000`.*
+
+**Terminal 2 (Frontend React App):**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*Frontend Web UI runs at `http://localhost:5173`.*
+
+---
+
+### 🪟 Running on Windows
+
+Open two terminal windows (Command Prompt or PowerShell):
+
+**Terminal 1 (Backend):**
+```cmd
+cd backend
+npm install
+npm start
+```
+
+**Terminal 2 (Frontend):**
+```cmd
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+### 🗄️ Database Setup (For Live DB Servers)
 
 #### A. MySQL Setup
-1. Start your MySQL Server (e.g. via XAMPP, MySQL Workbench, or service).
+1. Start your MySQL Server (e.g. via systemctl, XAMPP, MySQL Workbench).
 2. Execute the schema script:
    ```bash
    mysql -u root -p < database/mysql/schema.sql
@@ -87,35 +143,12 @@ All pre-seeded demo accounts use password: `password123`
    ```
 
 #### C. MongoDB Setup
-1. Start your MongoDB Daemon (`mongod`).
+1. Start your MongoDB Daemon (`mongod` or `systemctl start mongod`).
 2. Run the MongoDB node seed script:
    ```bash
    cd backend
    node ../database/mongodb/seed.js
    ```
-
----
-
-### Step 2: Start the Backend Server
-
-```bash
-cd backend
-npm install
-npm start
-```
-The backend REST API server will start on `http://localhost:5000`.
-
----
-
-### Step 3: Start the React Frontend
-
-Open a new terminal window:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Open your browser and navigate to `http://localhost:5173`.
 
 ---
 
@@ -150,6 +183,12 @@ Open your browser and navigate to `http://localhost:5173`.
 
 ```
 ecommerce-dbms/
+├── start.sh                 # Linux & macOS 1-Click Startup Script
+├── package.json             # Root npm script launcher
+├── .env.example
+├── .gitignore
+├── README.md
+│
 ├── frontend/
 │   ├── public/
 │   │   └── images/
@@ -216,18 +255,14 @@ ecommerce-dbms/
 │   ├── server.js
 │   └── package.json
 │
-├── database/
-│   ├── mysql/
-│   │   ├── schema.sql
-│   │   └── seed.sql
-│   ├── postgresql/
-│   │   ├── schema.sql
-│   │   └── seed.sql
-│   ├── mongodb/
-│   │   └── seed.js
-│   └── seedData.js
-│
-├── .env.example
-├── .gitignore
-└── README.md
+└── database/
+    ├── mysql/
+    │   ├── schema.sql
+    │   └── seed.sql
+    ├── postgresql/
+    │   ├── schema.sql
+    │   └── seed.sql
+    ├── mongodb/
+    │   └── seed.js
+    └── seedData.js
 ```
