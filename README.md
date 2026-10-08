@@ -8,38 +8,28 @@ A complete, full-stack E-Commerce Management System web application built strict
 
 1. **Dynamic Database Switching**:
    - At startup/login, select the target database: `[ MySQL ] [ PostgreSQL ] [ MongoDB ]`.
-   - The selected database dynamically determines where all user records, authentication, product catalog, carts, orders, and reviews are stored and retrieved.
+   - The selected database dynamically determines where all user records, authentication, product catalog, carts, orders, invoices, and reviews are stored and retrieved.
 
-2. **Strict Chen ER Diagram Compliance**:
-   - **Entities**: Customer, Address, Seller, Category, Product, Cart, Order, Payment, Review.
-   - **Derived Attributes**:
-     - `Customer.age` (calculated dynamically from `date_of_birth`).
-     - `Seller.total_sales` (calculated dynamically from `order_item` revenue).
-     - `Cart.items_total` & `Cart.grand_total` (calculated dynamically from `cart_item` junction).
-   - **Relationships & Cardinalities**:
-     - Customer -> Address (`has`, 1:N)
-     - Customer -> Cart (`owns`, 1:1)
-     - Customer -> Order (`places`, 1:N)
-     - Customer -> Review (`writes`, 1:N)
-     - Product -> Review (`receives`, 1:N)
-     - Seller -> Product (`sells`, 1:N)
-     - Category -> Product (`belongs to`, 1:N)
-     - Cart -> Product (`contains`, M:N attribute: `quantity`) -> `cart_item`
-     - Order -> Product (`includes`, M:N attributes: `quantity`, `unit_price`) -> `order_item`
-     - Order -> Payment (`paid by`, 1:N)
-     - Order -> Address (`ships to`, N:1)
+2. **End-to-End Order Status Lifecycle Workflow**:
+   - **Step 1 (Order Placed)**: Customer pays and places the order at checkout. Initial status is set to **`Order Placed`** (`ORDER_PLACED`).
+   - **Step 2 (Employee Forwarding)**: Employee reviews customer order requests and forwards them to the respective Seller (**"Forward Order to Seller"** -> `SENT_TO_SELLER`).
+   - **Step 3 (Seller Confirmation)**: Seller receives forwarded orders and confirms/places them (**"Confirm & Place Order"** -> `ORDER_CONFIRMED`).
+   - **Step 4 (Seller Shipping Request & Approx Delivery Date)**: Seller requests shipping to employee (**"Request Ship to Employee"** -> `SHIPPED`), auto-generating and saving an **Approximate Delivery Date** (`approx_delivery_date`, e.g. 4 business days).
+   - **Step 5 (Employee-Only Delivery Confirmation)**: Employee has the exclusive option **"Mark as Delivered"** (**strictly restricted to Employee/Admin roles**) to update status to **`Delivered`** (`DELIVERED`).
 
-3. **Modern Professional Dark UI**:
-   - Inspired by the DBMS Portal login design.
-   - Dark navy background (`#0b0f19`), dark card containers (`#161b26`), glowing purple/blue buttons and borders (`#6366f1`), responsive controls.
+3. **Downloadable (PDF) & Viewable Tax Invoice**:
+   - Interactive, print-ready **Invoice Modal** (`InvoiceModal.jsx`) powered by `html2canvas` and `jsPDF`.
+   - Features store branding, tax invoice number, order reference, customer billing details, shipping address, payment method/status, itemized line totals, subtotal/tax summary, current order status, and **Approximate Delivery Date**.
+   - Accessible immediately upon payment completion on the **Checkout** success screen, as well as on **My Orders**, **Customer Dashboard**, **Employee Dashboard**, and **Seller Dashboard**.
 
-4. **Role-Based Authentication & Dashboards**:
-   - **CUSTOMER**: Personal Dashboard, Product Catalog, Filters/Sort/Pagination, Cart Management, Checkout & Address Manager, Order History, Reviews.
-   - **SELLER**: Vendor Portal, Listed Products Inventory, Add/Edit/Deactivate Product, Stock Management, Sales Revenue metrics.
-   - **ADMIN**: Executive Console, Overview Statistics (Customers, Sellers, Products, Orders, Revenue, Pending Orders), Customer & Seller tables, Category CRUD, Order status updater, Payment Audit logs.
+4. **Role-Based Portals & Dashboards**:
+   - **CUSTOMER**: Personal Dashboard, Product Catalog with Search/Filter/Sort, Cart Management, Checkout with Address Manager, Order History, Invoice Downloads, and Reviews.
+   - **EMPLOYEE**: Intermediary Operations Portal, New Order Request Processing, Forwarding Orders to Sellers, Order Inspection, and Exclusive **Mark as Delivered** action.
+   - **SELLER**: Vendor Portal, Catalog Inventory Management, Add/Edit/Deactivate Product, Order Confirmation, Shipping Request to Employee, and Sales Metrics.
+   - **ADMIN**: Executive Console, Platform Overview Statistics (Customers, Sellers, Products, Orders, Revenue), System Audit Logs, Category CRUD, and Payment Management.
 
 5. **Sample Accounts Drawer**:
-   - Click **"View Sample Accounts"** on the login page for 1-click credential auto-fill for Admin, Customer, and Seller across all target databases!
+   - Click **"View Sample Accounts"** on the login page for 1-click credential auto-fill for Admin, Customer, Employee, and Seller across all target databases!
 
 ---
 
@@ -50,9 +40,10 @@ All pre-seeded demo accounts use password: `password123`
 | Role | Email | Password | Description |
 | :--- | :--- | :--- | :--- |
 | **ADMIN** | `admin@ecommerce.com` | `password123` | System Administrator - Full Access to Dashboards & Reports |
-| **CUSTOMER** | `john.doe@example.com` | `password123` | John Doe - Customer with addresses, cart, and orders |
+| **EMPLOYEE** | `employee@ecommerce.com` | `password123` | Operational Employee - Facilitates Customer ↔ Seller Order Lifecycle & Delivery |
+| **CUSTOMER** | `john.doe@example.com` | `password123` | John Doe - Customer with addresses, cart, orders, and PDF invoices |
 | **CUSTOMER** | `jane.smith@example.com` | `password123` | Jane Smith - Customer account |
-| **SELLER** | `techworld@seller.com` | `password123` | TechWorld Electronics - Seller listing gadgets |
+| **SELLER** | `techworld@seller.com` | `password123` | TechWorld Electronics - Seller listing gadgets & confirming orders |
 | **SELLER** | `fashionhub@seller.com` | `password123` | FashionHub Apparel - Seller listing clothing |
 
 ---
@@ -128,31 +119,30 @@ Open your browser and navigate to `http://localhost:5173`.
 
 ---
 
-## 🧪 Testing Workflow & Verification
+## 🧪 Testing Order Lifecycle & Invoice Workflow
 
-1. **Database Selection**:
-   - On the login page (`/login`), click `[ MySQL ]`, `[ PostgreSQL ]`, or `[ MongoDB ]`.
-   - The selected button will highlight with a glowing border and active engine badge.
+1. **Customer Order Placement & Invoice**:
+   - Log in as `john.doe@example.com` (`password123`).
+   - Add items to cart from `/products` and proceed to `/checkout`.
+   - Select address, choose payment method, and click **"Confirm & Place Order"**.
+   - Status becomes **`Order Placed`**.
+   - Click **"View & Download PDF Invoice"** to preview and download the official PDF tax receipt.
 
-2. **Login as Customer**:
-   - Click **"View Sample Accounts"** -> Select `john.doe@example.com` (`password123`).
-   - Click **"Login to Dashboard"**.
-   - Observe derived age (`30 years`), order metrics, cart items count, and order status history.
+2. **Employee Forwarding**:
+   - Log out and log in as `employee@ecommerce.com` (`password123`).
+   - Under *New Order Requests*, click **"Forward Order to Seller"**.
+   - Status updates to **`Forwarded to Seller`**.
 
-3. **Browse & Cart Operations**:
-   - Navigate to `/products`.
-   - Filter by Category ("Electronics & Gadgets"), Brand ("AcousticTech"), or sort by Price.
-   - Click **"Add Cart"**.
-   - Navigate to `/cart`, modify quantity, or click **"Proceed to Checkout"**.
-   - Select an existing shipping address or add a new address, choose Payment Method ("UPI"), and click **"Confirm & Place Order"**.
+3. **Seller Order Confirmation & Shipping Request**:
+   - Log out and log in as `techworld@seller.com` (`password123`).
+   - Under *Employee-Forwarded Orders*, click **"Confirm & Place Order"** (Status -> **`Order Confirmed`**).
+   - Click **"Request Ship to Employee"** (Status -> **`Order Shipped`**).
+   - An **Approximate Delivery Date** is generated and displayed.
 
-4. **Login as Seller**:
-   - Log out and log in with `techworld@seller.com` (`password123`).
-   - View vendor portal metrics, listed products, total sales revenue (derived), and click **"Add New Product"** to list a item.
-
-5. **Login as Admin**:
-   - Log out and log in with `admin@ecommerce.com` (`password123`).
-   - Manage all customer records, seller sales, categories CRUD, update order status dropdowns (`Pending` -> `Shipped` -> `Delivered`), and inspect payment logs.
+4. **Employee Delivery Confirmation**:
+   - Log back in as `employee@ecommerce.com` (`password123`).
+   - Under *Shipped Orders*, click **"Mark as Delivered"** (Only available for Employee role!).
+   - Status updates to **`Delivered`**.
 
 ---
 
@@ -161,10 +151,16 @@ Open your browser and navigate to `http://localhost:5173`.
 ```
 ecommerce-dbms/
 ├── frontend/
+│   ├── public/
+│   │   └── images/
+│   │       ├── headphones.jpg
+│   │       ├── laptop.jpg
+│   │       └── smartwatch.jpg
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── Navbar.jsx & Navbar.css
-│   │   │   └── Footer.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   └── InvoiceModal.jsx
 │   │   ├── context/
 │   │   │   ├── AuthContext.jsx
 │   │   │   └── DbContext.jsx
@@ -172,6 +168,7 @@ ecommerce-dbms/
 │   │   │   ├── Login.jsx & Login.css
 │   │   │   ├── Register.jsx
 │   │   │   ├── CustomerDashboard.jsx
+│   │   │   ├── EmployeeDashboard.jsx
 │   │   │   ├── SellerDashboard.jsx
 │   │   │   ├── AdminDashboard.jsx
 │   │   │   ├── Products.jsx
@@ -231,5 +228,6 @@ ecommerce-dbms/
 │   └── seedData.js
 │
 ├── .env.example
+├── .gitignore
 └── README.md
 ```
