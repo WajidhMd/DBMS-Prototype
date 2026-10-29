@@ -3,11 +3,12 @@ USE ecommerce_db;
 
 -- 1. Insert Users
 INSERT INTO users (user_id, email, password_hash, role, ref_id, created_at) VALUES
-('usr-admin-001', 'admin@ecommerce.com', '$2a$10$wT8dG6jT1d.B6a1YqE5d/.8y4aO/eC5r9f4y.2b8K1W9qM5o7d8/G', 'ADMIN', NULL, '2026-01-01 10:00:00'),
-('usr-cust-001', 'john.doe@example.com', '$2a$10$wT8dG6jT1d.B6a1YqE5d/.8y4aO/eC5r9f4y.2b8K1W9qM5o7d8/G', 'CUSTOMER', 'cust-001', '2026-01-02 11:30:00'),
-('usr-cust-002', 'jane.smith@example.com', '$2a$10$wT8dG6jT1d.B6a1YqE5d/.8y4aO/eC5r9f4y.2b8K1W9qM5o7d8/G', 'CUSTOMER', 'cust-002', '2026-01-03 14:15:00'),
-('usr-sell-001', 'techworld@seller.com', '$2a$10$wT8dG6jT1d.B6a1YqE5d/.8y4aO/eC5r9f4y.2b8K1W9qM5o7d8/G', 'SELLER', 'sell-001', '2026-01-01 09:00:00'),
-('usr-sell-002', 'fashionhub@seller.com', '$2a$10$wT8dG6jT1d.B6a1YqE5d/.8y4aO/eC5r9f4y.2b8K1W9qM5o7d8/G', 'SELLER', 'sell-002', '2026-01-01 09:30:00');
+('usr-admin-001', 'admin@ecommerce.com', '$2a$10$Qme0SBB149CGytnebQvoT.J8x0xWN0MDtjUYFM/SLEDkcNg3jJJae', 'ADMIN', NULL, '2026-01-01 10:00:00'),
+('usr-cust-001', 'john.doe@example.com', '$2a$10$Qme0SBB149CGytnebQvoT.J8x0xWN0MDtjUYFM/SLEDkcNg3jJJae', 'CUSTOMER', 'cust-001', '2026-01-02 11:30:00'),
+('usr-cust-002', 'jane.smith@example.com', '$2a$10$Qme0SBB149CGytnebQvoT.J8x0xWN0MDtjUYFM/SLEDkcNg3jJJae', 'CUSTOMER', 'cust-002', '2026-01-03 14:15:00'),
+('usr-sell-001', 'techworld@seller.com', '$2a$10$Qme0SBB149CGytnebQvoT.J8x0xWN0MDtjUYFM/SLEDkcNg3jJJae', 'SELLER', 'sell-001', '2026-01-01 09:00:00'),
+('usr-sell-002', 'fashionhub@seller.com', '$2a$10$Qme0SBB149CGytnebQvoT.J8x0xWN0MDtjUYFM/SLEDkcNg3jJJae', 'SELLER', 'sell-002', '2026-01-01 09:30:00'),
+('usr-emp-001', 'employee@ecommerce.com', '$2a$10$Qme0SBB149CGytnebQvoT.J8x0xWN0MDtjUYFM/SLEDkcNg3jJJae', 'EMPLOYEE', 'emp-001', '2026-01-01 08:00:00');
 
 -- 2. Insert Customers
 INSERT INTO customers (customer_id, user_id, email, first_name, middle_name, last_name, date_of_birth, phone) VALUES
@@ -24,6 +25,10 @@ INSERT INTO addresses (address_id, customer_id, street, apartment_no, city, stat
 INSERT INTO sellers (seller_id, user_id, name, email, phone) VALUES
 ('sell-001', 'usr-sell-001', 'TechWorld Electronics', 'techworld@seller.com', '+1-800-555-8324'),
 ('sell-002', 'usr-sell-002', 'FashionHub Apparel', 'fashionhub@seller.com', '+1-800-555-9988');
+
+-- 4b. Insert Employees
+INSERT INTO employees (employee_id, user_id, name, email, phone) VALUES
+('emp-001', 'usr-emp-001', 'Staff Member Alex', 'employee@ecommerce.com', '+1-555-0188');
 
 -- 5. Insert Categories
 INSERT INTO categories (category_id, category_name, description) VALUES
