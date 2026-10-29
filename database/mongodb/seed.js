@@ -5,6 +5,7 @@ import {
   sampleCustomers,
   sampleAddresses,
   sampleSellers,
+  sampleEmployees,
   sampleCategories,
   sampleProducts,
   sampleCarts,
@@ -12,7 +13,8 @@ import {
   sampleOrders,
   sampleOrderItems,
   samplePayments,
-  sampleReviews
+  sampleReviews,
+  sampleOrderHistory
 } from '../seedData.js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -28,9 +30,11 @@ async function seedMongoDB() {
 
     console.log('Clearing existing collections...');
     const collections = [
-      'users', 'customers', 'addresses', 'sellers',
+      'users', 'customers', 'addresses', 'sellers', 'employees',
       'categories', 'products', 'carts', 'cart_items',
-      'orders', 'order_items', 'payments', 'reviews'
+      'orders', 'order_items', 'payments', 'reviews', 'order_history',
+      'return_requests', 'return_items', 'return_status_history',
+      'notifications', 'feedback_moderation'
     ];
 
     for (const name of collections) {
@@ -42,6 +46,9 @@ async function seedMongoDB() {
     await db.collection('customers').insertMany(sampleCustomers);
     await db.collection('addresses').insertMany(sampleAddresses);
     await db.collection('sellers').insertMany(sampleSellers);
+    if (sampleEmployees && sampleEmployees.length > 0) {
+      await db.collection('employees').insertMany(sampleEmployees);
+    }
     await db.collection('categories').insertMany(sampleCategories);
     await db.collection('products').insertMany(sampleProducts);
     await db.collection('carts').insertMany(sampleCarts);
@@ -50,6 +57,9 @@ async function seedMongoDB() {
     await db.collection('order_items').insertMany(sampleOrderItems);
     await db.collection('payments').insertMany(samplePayments);
     await db.collection('reviews').insertMany(sampleReviews);
+    if (sampleOrderHistory && sampleOrderHistory.length > 0) {
+      await db.collection('order_history').insertMany(sampleOrderHistory);
+    }
 
     console.log('✅ MongoDB database successfully seeded!');
   } catch (error) {

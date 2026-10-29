@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
 import api from '../services/api';
-import { ShoppingBag, ShoppingCart, Star, ArrowLeft, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Star, ArrowLeft, CheckCircle, AlertCircle, MessageSquare, Edit2, Trash2 } from 'lucide-react';
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -16,6 +16,7 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true);
 
   // Review Form state
+  const [editingReviewId, setEditingReviewId] = useState(null);
   const [rating, setRating] = useState(5);
   const [reviewDesc, setReviewDesc] = useState('');
   const [reviewError, setReviewError] = useState('');
@@ -58,6 +59,31 @@ export default function ProductDetails() {
     }
   };
 
+  const handleStartEdit = (r) => {
+    setEditingReviewId(r.review_id);
+    setRating(r.rating);
+    setReviewDesc(r.description);
+    setReviewError('');
+    setReviewSuccess('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReviewId(null);
+    setRating(5);
+    setReviewDesc('');
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete your review?')) return;
+    try {
+      await api.delete(`/reviews/${reviewId}`);
+      alert('Review deleted.');
+      fetchProductDetails();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete review.');
+    }
+  };
+
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     setReviewError('');
@@ -70,16 +96,25 @@ export default function ProductDetails() {
 
     try {
       setSubmittingReview(true);
-      await api.post('/reviews', {
-        product_id: product.product_id,
-        rating: parseInt(rating),
-        description: reviewDesc
-      });
-      setReviewSuccess('Review submitted successfully!');
+      if (editingReviewId) {
+        await api.put(`/reviews/${editingReviewId}`, {
+          rating: parseInt(rating),
+          description: reviewDesc
+        });
+        setReviewSuccess('Review updated successfully!');
+        setEditingReviewId(null);
+      } else {
+        await api.post('/reviews', {
+          product_id: product.product_id,
+          rating: parseInt(rating),
+          description: reviewDesc
+        });
+        setReviewSuccess('Review submitted successfully!');
+      }
       setReviewDesc('');
       fetchProductDetails();
     } catch (err) {
-      setReviewError(err.response?.data?.error || 'A customer can only review products they have purchased.');
+      setReviewError(err.response?.data?.error || 'A customer can only review products from delivered orders.');
     } finally {
       setSubmittingReview(false);
     }
@@ -100,6 +135,8 @@ export default function ProductDetails() {
     );
   }
 
+  const myReview = user && reviews.find(r => r.customer_id === user?.ref_id);
+
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem', maxWidth: '960px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem' }}>
@@ -116,7 +153,7 @@ export default function ProductDetails() {
         padding: '2rem',
         marginBottom: '2rem',
         display: 'grid',
-        gridTemplateColumns: '1fr 1.2fr',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: '2rem'
       }}>
         {/* Product Image Container */}
@@ -149,7 +186,7 @@ export default function ProductDetails() {
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span className="badge badge-mysql">{product.category_name}</span>
+              <span className="badge badge-cyan">{product.category_name}</span>
               <span className="badge badge-success">Target: {targetDb.toUpperCase()}</span>
             </div>
 
@@ -205,7 +242,7 @@ export default function ProductDetails() {
           <MessageSquare size={20} color="var(--accent-purple)" /> Verified Customer Reviews
         </h2>
 
-        {/* Review Form */}
+        {/* Review Form (Only for Customer role, and allow editing existing) */}
         {role === 'CUSTOMER' && (
           <div style={{
             backgroundColor: 'var(--bg-input)',
@@ -214,9 +251,11 @@ export default function ProductDetails() {
             padding: '1.25rem',
             marginBottom: '2rem'
           }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem' }}>Write a Product Review</h3>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+              {editingReviewId ? 'Edit Your Review' : myReview ? 'Your Submitted Review' : 'Write a Product Review'}
+            </h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Note: System enforces ER relationship constraint — reviews can only be posted by customers who have purchased this product.
+              Reviews can only be submitted for delivered purchases. Prevent duplicates: customer can update their existing review anytime.
             </p>
 
             {reviewError && <div className="error-banner">{reviewError}</div>}
@@ -226,34 +265,73 @@ export default function ProductDetails() {
               </div>
             )}
 
-            <form onSubmit={handleSubmitReview}>
-              <div className="form-group">
-                <label className="form-label">Rating (1 to 5 Stars)</label>
-                <select className="form-input" value={rating} onChange={(e) => setRating(e.target.value)}>
-                  <option value="5">⭐⭐⭐⭐⭐ (5 - Excellent)</option>
-                  <option value="4">⭐⭐⭐⭐ (4 - Very Good)</option>
-                  <option value="3">⭐⭐⭐ (3 - Average)</option>
-                  <option value="2">⭐⭐ (2 - Below Average)</option>
-                  <option value="1">⭐ (1 - Poor)</option>
-                </select>
+            {myReview && !editingReviewId ? (
+              <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', color: '#f59e0b' }}>
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Star key={s} size={15} fill={s <= myReview.rating ? '#f59e0b' : 'none'} />
+                      ))}
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{myReview.rating}/5</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => handleStartEdit(myReview)}
+                      className="btn-secondary-outline"
+                      style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                    >
+                      <Edit2 size={13} /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteReview(myReview.review_id)}
+                      className="btn-secondary-outline"
+                      style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem', color: '#ef4444', borderColor: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>"{myReview.description}"</p>
               </div>
+            ) : (
+              <form onSubmit={handleSubmitReview}>
+                <div className="form-group">
+                  <label className="form-label">Rating (1 to 5 Stars)</label>
+                  <select className="form-input" value={rating} onChange={(e) => setRating(e.target.value)}>
+                    <option value="5">⭐⭐⭐⭐⭐ (5 - Excellent)</option>
+                    <option value="4">⭐⭐⭐⭐ (4 - Very Good)</option>
+                    <option value="3">⭐⭐⭐ (3 - Average)</option>
+                    <option value="2">⭐⭐ (2 - Below Average)</option>
+                    <option value="1">⭐ (1 - Poor)</option>
+                  </select>
+                </div>
 
-              <div className="form-group">
-                <label className="form-label">Review Comment</label>
-                <textarea
-                  className="form-input"
-                  rows="3"
-                  placeholder="Share your experience with this product..."
-                  value={reviewDesc}
-                  onChange={(e) => setReviewDesc(e.target.value)}
-                  required
-                ></textarea>
-              </div>
+                <div className="form-group">
+                  <label className="form-label">Review Comment</label>
+                  <textarea
+                    className="form-input"
+                    rows="3"
+                    placeholder="Share your experience with this product..."
+                    value={reviewDesc}
+                    onChange={(e) => setReviewDesc(e.target.value)}
+                    required
+                  ></textarea>
+                </div>
 
-              <button type="submit" className="btn-primary-block" style={{ width: 'auto', padding: '0.6rem 1.25rem', marginTop: 0 }} disabled={submittingReview}>
-                {submittingReview ? 'Submitting...' : 'Submit Review'}
-              </button>
-            </form>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button type="submit" className="btn-primary-block" style={{ width: 'auto', padding: '0.6rem 1.25rem', marginTop: 0 }} disabled={submittingReview}>
+                    {submittingReview ? 'Submitting...' : editingReviewId ? 'Save Changes' : 'Submit Review'}
+                  </button>
+                  {editingReviewId && (
+                    <button type="button" onClick={handleCancelEdit} className="btn-secondary-outline" style={{ width: 'auto' }}>
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
           </div>
         )}
 
@@ -275,6 +353,7 @@ export default function ProductDetails() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{r.customer_name}</strong>
+                    <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Verified Purchase</span>
                     <div style={{ display: 'flex', color: '#f59e0b' }}>
                       {[1, 2, 3, 4, 5].map(star => (
                         <Star key={star} size={14} fill={star <= r.rating ? '#f59e0b' : 'none'} />
@@ -283,7 +362,7 @@ export default function ProductDetails() {
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{r.review_date}</span>
                 </div>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{r.description}</p>
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>{r.description}</p>
               </div>
             ))}
           </div>

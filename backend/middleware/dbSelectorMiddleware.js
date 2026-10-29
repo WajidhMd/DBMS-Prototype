@@ -3,11 +3,11 @@ export function dbSelectorMiddleware(req, res, next) {
   const queryDbType = req.query.dbType;
   const bodyDbType = req.body && req.body.dbType;
 
-  const dbType = (headerDbType || queryDbType || bodyDbType || 'mysql').toLowerCase();
+  const dbType = (headerDbType || queryDbType || bodyDbType || 'postgresql').toLowerCase();
   
-  // Validate allowed database types
-  if (!['mysql', 'postgresql', 'postgres', 'mongodb', 'mongo'].includes(dbType)) {
-    req.dbType = 'mysql';
+  // Validate allowed database types (PostgreSQL and MongoDB only)
+  if (!['postgresql', 'postgres', 'mongodb', 'mongo'].includes(dbType)) {
+    req.dbType = 'postgresql';
   } else {
     req.dbType = dbType;
   }

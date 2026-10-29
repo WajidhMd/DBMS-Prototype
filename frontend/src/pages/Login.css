@@ -67,8 +67,8 @@
 
 .db-selector-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
 }
 
 .db-select-btn {
@@ -89,13 +89,6 @@
 .db-select-btn:hover {
   border-color: var(--accent-purple);
   color: var(--text-primary);
-}
-
-.db-select-btn.selected-mysql {
-  background: rgba(2, 132, 199, 0.15);
-  border-color: #38bdf8;
-  color: #38bdf8;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
 }
 
 .db-select-btn.selected-postgresql {

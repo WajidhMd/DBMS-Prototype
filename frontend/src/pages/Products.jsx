@@ -267,7 +267,7 @@ export default function Products() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <span className="badge badge-mysql" style={{ fontSize: '0.7rem' }}>{p.category_name || 'Category'}</span>
+                  <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>{p.category_name || 'Category'}</span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Seller: {p.seller_name}</span>
                 </div>
 

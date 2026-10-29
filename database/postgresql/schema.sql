@@ -1,6 +1,12 @@
 -- PostgreSQL DDL Schema for E-Commerce Management System
 
 -- Drop tables if existing (in reverse dependency order)
+DROP TABLE IF EXISTS feedback_moderation CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS return_status_history CASCADE;
+DROP TABLE IF EXISTS return_items CASCADE;
+DROP TABLE IF EXISTS return_requests CASCADE;
+DROP TABLE IF EXISTS order_history CASCADE;
 DROP TABLE IF EXISTS reviews CASCADE;
 DROP TABLE IF EXISTS payments CASCADE;
 DROP TABLE IF EXISTS order_item CASCADE;
@@ -9,6 +15,7 @@ DROP TABLE IF EXISTS cart_item CASCADE;
 DROP TABLE IF EXISTS carts CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
 DROP TABLE IF EXISTS sellers CASCADE;
 DROP TABLE IF EXISTS addresses CASCADE;
 DROP TABLE IF EXISTS customers CASCADE;
@@ -110,7 +117,10 @@ CREATE TABLE orders (
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     shipping_date TIMESTAMP NULL,
     order_amount NUMERIC(10, 2) NOT NULL,
-    order_status VARCHAR(30) DEFAULT 'Pending'
+    order_status VARCHAR(30) DEFAULT 'Pending',
+    approx_delivery_date VARCHAR(50),
+    courier_name VARCHAR(100),
+    tracking_number VARCHAR(100)
 );
 
 -- 10. Order Item (Order -> Product M:N Junction)
@@ -139,7 +149,9 @@ CREATE TABLE reviews (
     product_id VARCHAR(36) NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
     rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
     description TEXT,
-    review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_hidden BOOLEAN DEFAULT FALSE,
+    is_flagged BOOLEAN DEFAULT FALSE
 );
 
 -- 13. Order History / Audit Entity
@@ -153,3 +165,67 @@ CREATE TABLE order_history (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 14. Return Request Entity
+CREATE TABLE return_requests (
+    return_id VARCHAR(36) PRIMARY KEY,
+    order_id VARCHAR(36) NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    customer_id VARCHAR(36) NOT NULL REFERENCES customers(customer_id) ON DELETE CASCADE,
+    return_status VARCHAR(30) NOT NULL DEFAULT 'RETURN_REQUESTED',
+    reason VARCHAR(100) NOT NULL,
+    comments TEXT,
+    image_url VARCHAR(500),
+    refund_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    refund_status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    courier_name VARCHAR(100),
+    tracking_number VARCHAR(100),
+    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    approval_date TIMESTAMP NULL,
+    shipment_date TIMESTAMP NULL,
+    received_date TIMESTAMP NULL,
+    completed_date TIMESTAMP NULL,
+    rejection_reason TEXT
+);
+
+-- 15. Return Items (Return -> Product M:N Junction with Seller linkage)
+CREATE TABLE return_items (
+    return_id VARCHAR(36) NOT NULL REFERENCES return_requests(return_id) ON DELETE CASCADE,
+    product_id VARCHAR(36) NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    seller_id VARCHAR(36) NOT NULL REFERENCES sellers(seller_id) ON DELETE CASCADE,
+    quantity INT NOT NULL DEFAULT 1,
+    unit_price NUMERIC(10, 2) NOT NULL,
+    PRIMARY KEY (return_id, product_id)
+);
+
+-- 16. Return Status History / Audit Entity
+CREATE TABLE return_status_history (
+    history_id VARCHAR(36) PRIMARY KEY,
+    return_id VARCHAR(36) NOT NULL REFERENCES return_requests(return_id) ON DELETE CASCADE,
+    status VARCHAR(30) NOT NULL,
+    performed_by VARCHAR(120) NOT NULL,
+    notes TEXT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 17. In-App Notifications Entity
+CREATE TABLE notifications (
+    notification_id VARCHAR(36) PRIMARY KEY,
+    recipient_id VARCHAR(36),
+    recipient_role VARCHAR(20) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    reference_id VARCHAR(36),
+    reference_type VARCHAR(30),
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 18. Feedback Moderation Log Entity
+CREATE TABLE feedback_moderation (
+    moderation_id VARCHAR(36) PRIMARY KEY,
+    review_id VARCHAR(36) NOT NULL REFERENCES reviews(review_id) ON DELETE CASCADE,
+    action VARCHAR(50) NOT NULL,
+    moderator VARCHAR(120) NOT NULL,
+    reason TEXT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

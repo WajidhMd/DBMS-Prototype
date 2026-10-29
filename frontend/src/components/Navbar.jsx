@@ -18,6 +18,7 @@ import {
   CreditCard,
   ShieldAlert
 } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -66,14 +67,8 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Database Selector Pills */}
+        {/* Database Selector Pills (PostgreSQL & MongoDB only) */}
         <div className="db-pill-selector" title="Active Target Database">
-          <button
-            className={`db-pill-btn ${targetDb === 'mysql' ? 'active-mysql' : ''}`}
-            onClick={() => handleDbChange('mysql')}
-          >
-            MySQL
-          </button>
           <button
             className={`db-pill-btn ${targetDb === 'postgresql' ? 'active-postgresql' : ''}`}
             onClick={() => handleDbChange('postgresql')}
@@ -191,7 +186,10 @@ export default function Navbar() {
                 </>
               )}
 
-              {/* User profile & Logout */}
+              {/* Notifications & User profile & Logout */}
+              <li style={{ display: 'flex', alignItems: 'center' }}>
+                <NotificationBell />
+              </li>
               <li className="user-menu">
                 <Link to="/profile" className={`nav-item ${location.pathname === '/profile' ? 'active' : ''}`}>
                   <User size={16} /> {user.email.split('@')[0]}

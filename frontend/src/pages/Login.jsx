@@ -80,18 +80,10 @@ export default function Login() {
           <p className="auth-subtitle">Database Management Systems Project</p>
         </div>
 
-        {/* Database Selector Pill Grid */}
+        {/* Database Selector Pill Grid (PostgreSQL & MongoDB only) */}
         <div className="target-db-section">
           <label className="target-db-label">TARGET DATABASE</label>
-          <div className="db-selector-grid">
-            <button
-              type="button"
-              className={`db-select-btn ${targetDb === 'mysql' ? 'selected-mysql' : ''}`}
-              onClick={() => setTargetDb('mysql')}
-            >
-              {targetDb === 'mysql' && <Check size={14} />} MySQL
-            </button>
-
+          <div className="db-selector-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
             <button
               type="button"
               className={`db-select-btn ${targetDb === 'postgresql' ? 'selected-postgresql' : ''}`}

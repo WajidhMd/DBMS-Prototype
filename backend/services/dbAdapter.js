@@ -1,4 +1,3 @@
-import { getMySQLPool, testMySQLConnection } from '../database/mysql.js';
 import { getPostgresPool, testPostgresConnection } from '../database/postgresql.js';
 import { getMongoDB, testMongoDBConnection } from '../database/mongodb.js';
 import {
@@ -20,7 +19,6 @@ import {
 
 // In-Memory Storage Instances for seamless demo mode per database target
 const memoryStores = {
-  mysql: createSeedSnapshot(),
   postgresql: createSeedSnapshot(),
   mongodb: createSeedSnapshot()
 };
@@ -40,8 +38,26 @@ function createSeedSnapshot() {
     order_item: JSON.parse(JSON.stringify(sampleOrderItems)),
     payments: JSON.parse(JSON.stringify(samplePayments)),
     reviews: JSON.parse(JSON.stringify(sampleReviews)),
-    order_history: JSON.parse(JSON.stringify(sampleOrderHistory || []))
+    order_history: JSON.parse(JSON.stringify(sampleOrderHistory || [])),
+    return_requests: [],
+    return_items: [],
+    return_status_history: [],
+    notifications: [],
+    feedback_moderation: []
   };
+}
+
+function getStore(dbType) {
+  const normType = normalizeDbType(dbType);
+  return memoryStores[normType] || memoryStores.postgresql;
+}
+
+function normalizeDbType(dbType) {
+  const norm = (dbType || 'postgresql').toLowerCase();
+  if (norm === 'postgres') return 'postgresql';
+  if (norm === 'mongo') return 'mongodb';
+  if (norm === 'postgresql' || norm === 'mongodb') return norm;
+  return 'postgresql';
 }
 
 // Calculate derived age
@@ -54,15 +70,13 @@ export function calculateAge(dob) {
 }
 
 // Check database connection status
-export async function getDbStatus(dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
+export async function getDbStatus(dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
   let liveConnected = false;
 
-  if (normType === 'mysql') {
-    liveConnected = await testMySQLConnection();
-  } else if (normType === 'postgresql' || normType === 'postgres') {
+  if (normType === 'postgresql') {
     liveConnected = await testPostgresConnection();
-  } else if (normType === 'mongodb' || normType === 'mongo') {
+  } else if (normType === 'mongodb') {
     liveConnected = await testMongoDBConnection();
   }
 
@@ -77,44 +91,29 @@ export async function getDbStatus(dbType = 'mysql') {
 // USER & AUTH OPERATIONS
 // ---------------------------------------------------
 
-export async function findUserByEmail(email, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    return rows[0] || null;
-  }
+export async function findUserByEmail(email, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
 
-  if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     return res.rows[0] || null;
   }
 
-  if ((normType === 'mongodb' || normType === 'mongo') && await testMongoDBConnection()) {
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
     return await db.collection('users').findOne({ email });
   }
 
   // Memory fallback
-  const store = memoryStores[normType] || memoryStores.mysql;
+  const store = getStore(dbType);
   return store.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
 }
 
-export async function createUser(userData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
+export async function createUser(userData, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    await pool.query(
-      'INSERT INTO users (user_id, email, password_hash, role, ref_id) VALUES (?, ?, ?, ?, ?)',
-      [userData.user_id, userData.email, userData.password_hash, userData.role, userData.ref_id]
-    );
-    return userData;
-  }
-
-  if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     await pool.query(
       'INSERT INTO users (user_id, email, password_hash, role, ref_id) VALUES ($1, $2, $3, $4, $5)',
@@ -123,32 +122,21 @@ export async function createUser(userData, dbType = 'mysql') {
     return userData;
   }
 
-  if ((normType === 'mongodb' || normType === 'mongo') && await testMongoDBConnection()) {
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
     await db.collection('users').insertOne(userData);
     return userData;
   }
 
-  const store = memoryStores[normType] || memoryStores.mysql;
+  const store = getStore(dbType);
   store.users.push(userData);
   return userData;
 }
 
-export async function createCustomer(custData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
+export async function createCustomer(custData, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    await pool.query(
-      'INSERT INTO customers (customer_id, user_id, email, first_name, middle_name, last_name, date_of_birth, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [custData.customer_id, custData.user_id, custData.email, custData.first_name, custData.middle_name, custData.last_name, custData.date_of_birth, custData.phone]
-    );
-    // Automatically initialize cart
-    await pool.query('INSERT INTO carts (cart_id, customer_id) VALUES (?, ?)', [`cart-${custData.customer_id}`, custData.customer_id]);
-    return custData;
-  }
-
-  if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     await pool.query(
       'INSERT INTO customers (customer_id, user_id, email, first_name, middle_name, last_name, date_of_birth, phone) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
@@ -158,32 +146,23 @@ export async function createCustomer(custData, dbType = 'mysql') {
     return custData;
   }
 
-  if ((normType === 'mongodb' || normType === 'mongo') && await testMongoDBConnection()) {
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
     await db.collection('customers').insertOne(custData);
     await db.collection('carts').insertOne({ cart_id: `cart-${custData.customer_id}`, customer_id: custData.customer_id });
     return custData;
   }
 
-  const store = memoryStores[normType] || memoryStores.mysql;
+  const store = getStore(dbType);
   store.customers.push(custData);
   store.carts.push({ cart_id: `cart-${custData.customer_id}`, customer_id: custData.customer_id });
   return custData;
 }
 
-export async function createSeller(sellerData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
+export async function createSeller(sellerData, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    await pool.query(
-      'INSERT INTO sellers (seller_id, user_id, name, email, phone) VALUES (?, ?, ?, ?, ?)',
-      [sellerData.seller_id, sellerData.user_id, sellerData.name, sellerData.email, sellerData.phone]
-    );
-    return sellerData;
-  }
-
-  if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     await pool.query(
       'INSERT INTO sellers (seller_id, user_id, name, email, phone) VALUES ($1, $2, $3, $4, $5)',
@@ -192,62 +171,50 @@ export async function createSeller(sellerData, dbType = 'mysql') {
     return sellerData;
   }
 
-  if ((normType === 'mongodb' || normType === 'mongo') && await testMongoDBConnection()) {
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
     await db.collection('sellers').insertOne(sellerData);
     return sellerData;
   }
 
-  const store = memoryStores[normType] || memoryStores.mysql;
+  const store = getStore(dbType);
   store.sellers.push(sellerData);
   return sellerData;
 }
 
-export async function getCustomerById(customerId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
+export async function getCustomerById(customerId, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    const [rows] = await pool.query('SELECT * FROM customers WHERE customer_id = ?', [customerId]);
-    if (!rows[0]) return null;
-    return { ...rows[0], age: calculateAge(rows[0].date_of_birth) };
-  }
-
-  if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     const res = await pool.query('SELECT * FROM customers WHERE customer_id = $1', [customerId]);
     if (!res.rows[0]) return null;
     return { ...res.rows[0], age: calculateAge(res.rows[0].date_of_birth) };
   }
 
-  if ((normType === 'mongodb' || normType === 'mongo') && await testMongoDBConnection()) {
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
     const cust = await db.collection('customers').findOne({ customer_id: customerId });
     if (!cust) return null;
     return { ...cust, age: calculateAge(cust.date_of_birth) };
   }
 
-  const store = memoryStores[normType] || memoryStores.mysql;
+  const store = getStore(dbType);
   const cust = store.customers.find(c => c.customer_id === customerId);
   if (!cust) return null;
   return { ...cust, age: calculateAge(cust.date_of_birth) };
 }
 
-export async function getSellerById(sellerId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getSellerById(sellerId, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
   let seller = null;
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    const [rows] = await pool.query('SELECT * FROM sellers WHERE seller_id = ?', [sellerId]);
-    seller = rows[0] || null;
-  } else if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     const res = await pool.query('SELECT * FROM sellers WHERE seller_id = $1', [sellerId]);
     seller = res.rows[0] || null;
-  } else if ((normType === 'mongodb' || normType === 'mongo') && await testMongoDBConnection()) {
+  } else if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
     seller = await db.collection('sellers').findOne({ seller_id: sellerId });
   } else {
@@ -269,19 +236,10 @@ export async function getSellerById(sellerId, dbType = 'mysql') {
   return { ...seller, total_sales: totalSales };
 }
 
-export async function createEmployee(empData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
+export async function createEmployee(empData, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    await pool.query(
-      'INSERT INTO employees (employee_id, user_id, name, email, phone) VALUES (?, ?, ?, ?, ?)',
-      [empData.employee_id, empData.user_id, empData.name, empData.email, empData.phone]
-    );
-    return empData;
-  }
-
-  if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     await pool.query(
       'INSERT INTO employees (employee_id, user_id, name, email, phone) VALUES ($1, $2, $3, $4, $5)',
@@ -290,34 +248,30 @@ export async function createEmployee(empData, dbType = 'mysql') {
     return empData;
   }
 
-  if ((normType === 'mongodb' || normType === 'mongo') && await testMongoDBConnection()) {
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
     await db.collection('employees').insertOne(empData);
     return empData;
   }
 
-  const store = memoryStores[normType] || memoryStores.mysql;
+  const store = getStore(dbType);
   if (!store.employees) store.employees = JSON.parse(JSON.stringify(sampleEmployees || []));
   store.employees.push(empData);
   return empData;
 }
 
-export async function getEmployeeById(employeeId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getEmployeeById(employeeId, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
   if (!store.employees) store.employees = JSON.parse(JSON.stringify(sampleEmployees || []));
 
   let employee = null;
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    const [rows] = await pool.query('SELECT * FROM employees WHERE employee_id = ?', [employeeId]);
-    employee = rows[0] || null;
-  } else if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     const res = await pool.query('SELECT * FROM employees WHERE employee_id = $1', [employeeId]);
     employee = res.rows[0] || null;
-  } else if ((normType === 'mongodb' || normType === 'mongo') && await testMongoDBConnection()) {
+  } else if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
     employee = await db.collection('employees').findOne({ employee_id: employeeId });
   } else {
@@ -327,16 +281,14 @@ export async function getEmployeeById(employeeId, dbType = 'mysql') {
   return employee;
 }
 
-export async function getAllEmployees(dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllEmployees(dbType = 'postgresql') {
+  const store = getStore(dbType);
   if (!store.employees) store.employees = JSON.parse(JSON.stringify(sampleEmployees || []));
   return store.employees;
 }
 
-export async function getAllUsers(dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllUsers(dbType = 'postgresql') {
+  const store = getStore(dbType);
 
   return store.users.map(u => {
     let name = u.email;
@@ -365,9 +317,8 @@ export async function getAllUsers(dbType = 'mysql') {
   });
 }
 
-export async function deactivateUser(userId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function deactivateUser(userId, dbType = 'postgresql') {
+  const store = getStore(dbType);
 
   const user = store.users.find(u => u.user_id === userId);
   if (user) {
@@ -383,21 +334,12 @@ export async function deactivateUser(userId, dbType = 'mysql') {
 // PRODUCTS OPERATIONS
 // ---------------------------------------------------
 
-export async function getAllProducts(filters = {}, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllProducts(filters = {}, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
   let productsList = [];
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    const [rows] = await pool.query(`
-      SELECT p.*, c.category_name, s.name as seller_name 
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.category_id
-      LEFT JOIN sellers s ON p.seller_id = s.seller_id
-    `);
-    productsList = rows;
-  } else if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     const res = await pool.query(`
       SELECT p.*, c.category_name, s.name as seller_name 
@@ -455,7 +397,7 @@ export async function getAllProducts(filters = {}, dbType = 'mysql') {
   return result;
 }
 
-export async function getProductById(productId, dbType = 'mysql') {
+export async function getProductById(productId, dbType = 'postgresql') {
   const products = await getAllProducts({}, dbType);
   const prod = products.find(p => p.product_id === productId);
   if (!prod) return null;
@@ -469,23 +411,15 @@ export async function getProductById(productId, dbType = 'mysql') {
   return {
     ...prod,
     reviews,
-    avg_rating: avgRating
+    avg_rating: avgRating,
+    total_reviews: reviews.length
   };
 }
 
-export async function createProduct(prodData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
+export async function createProduct(prodData, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
 
-  if (normType === 'mysql' && await testMySQLConnection()) {
-    const pool = getMySQLPool();
-    await pool.query(
-      'INSERT INTO products (product_id, seller_id, category_id, product_name, brand, mrp, stock_qty, is_active, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [prodData.product_id, prodData.seller_id, prodData.category_id, prodData.product_name, prodData.brand, prodData.mrp, prodData.stock_qty, prodData.is_active ?? true, prodData.image_url || '']
-    );
-    return prodData;
-  }
-
-  if ((normType === 'postgresql' || normType === 'postgres') && await testPostgresConnection()) {
+  if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     await pool.query(
       'INSERT INTO products (product_id, seller_id, category_id, product_name, brand, mrp, stock_qty, is_active, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
@@ -494,14 +428,13 @@ export async function createProduct(prodData, dbType = 'mysql') {
     return prodData;
   }
 
-  const store = memoryStores[normType] || memoryStores.mysql;
+  const store = getStore(dbType);
   store.products.push(prodData);
   return prodData;
 }
 
-export async function updateProduct(productId, updates, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function updateProduct(productId, updates, dbType = 'postgresql') {
+  const store = getStore(dbType);
   const idx = store.products.findIndex(p => p.product_id === productId);
   if (idx !== -1) {
     store.products[idx] = { ...store.products[idx], ...updates };
@@ -510,9 +443,8 @@ export async function updateProduct(productId, updates, dbType = 'mysql') {
   return null;
 }
 
-export async function deleteProduct(productId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function deleteProduct(productId, dbType = 'postgresql') {
+  const store = getStore(dbType);
   store.products = store.products.filter(p => p.product_id !== productId);
   return true;
 }
@@ -521,22 +453,19 @@ export async function deleteProduct(productId, dbType = 'mysql') {
 // CATEGORY OPERATIONS
 // ---------------------------------------------------
 
-export async function getAllCategories(dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllCategories(dbType = 'postgresql') {
+  const store = getStore(dbType);
   return store.categories;
 }
 
-export async function createCategory(catData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function createCategory(catData, dbType = 'postgresql') {
+  const store = getStore(dbType);
   store.categories.push(catData);
   return catData;
 }
 
-export async function updateCategory(categoryId, updates, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function updateCategory(categoryId, updates, dbType = 'postgresql') {
+  const store = getStore(dbType);
   const idx = store.categories.findIndex(c => c.category_id === categoryId);
   if (idx !== -1) {
     store.categories[idx] = { ...store.categories[idx], ...updates };
@@ -545,9 +474,8 @@ export async function updateCategory(categoryId, updates, dbType = 'mysql') {
   return null;
 }
 
-export async function deleteCategory(categoryId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function deleteCategory(categoryId, dbType = 'postgresql') {
+  const store = getStore(dbType);
   store.categories = store.categories.filter(c => c.category_id !== categoryId);
   return true;
 }
@@ -556,9 +484,8 @@ export async function deleteCategory(categoryId, dbType = 'mysql') {
 // CART OPERATIONS (Includes derived grand_total & items_total)
 // ---------------------------------------------------
 
-export async function getCartByCustomerId(customerId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getCartByCustomerId(customerId, dbType = 'postgresql') {
+  const store = getStore(dbType);
 
   let cart = store.carts.find(c => c.customer_id === customerId);
   if (!cart) {
@@ -594,9 +521,8 @@ export async function getCartByCustomerId(customerId, dbType = 'mysql') {
   };
 }
 
-export async function addToCart(customerId, productId, quantity = 1, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function addToCart(customerId, productId, quantity = 1, dbType = 'postgresql') {
+  const store = getStore(dbType);
 
   const cart = await getCartByCustomerId(customerId, dbType);
   const existing = store.cart_item.find(ci => ci.cart_id === cart.cart_id && ci.product_id === productId);
@@ -614,9 +540,8 @@ export async function addToCart(customerId, productId, quantity = 1, dbType = 'm
   return await getCartByCustomerId(customerId, dbType);
 }
 
-export async function updateCartItemQuantity(customerId, productId, quantity, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function updateCartItemQuantity(customerId, productId, quantity, dbType = 'postgresql') {
+  const store = getStore(dbType);
   const cart = await getCartByCustomerId(customerId, dbType);
 
   const idx = store.cart_item.findIndex(ci => ci.cart_id === cart.cart_id && ci.product_id === productId);
@@ -631,13 +556,12 @@ export async function updateCartItemQuantity(customerId, productId, quantity, db
   return await getCartByCustomerId(customerId, dbType);
 }
 
-export async function removeFromCart(customerId, productId, dbType = 'mysql') {
+export async function removeFromCart(customerId, productId, dbType = 'postgresql') {
   return await updateCartItemQuantity(customerId, productId, 0, dbType);
 }
 
-export async function clearCart(customerId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function clearCart(customerId, dbType = 'postgresql') {
+  const store = getStore(dbType);
   const cart = await getCartByCustomerId(customerId, dbType);
   store.cart_item = store.cart_item.filter(ci => ci.cart_id !== cart.cart_id);
   return await getCartByCustomerId(customerId, dbType);
@@ -647,15 +571,13 @@ export async function clearCart(customerId, dbType = 'mysql') {
 // ADDRESS OPERATIONS
 // ---------------------------------------------------
 
-export async function getAddressesByCustomerId(customerId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAddressesByCustomerId(customerId, dbType = 'postgresql') {
+  const store = getStore(dbType);
   return store.addresses.filter(a => a.customer_id === customerId);
 }
 
-export async function createAddress(addrData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function createAddress(addrData, dbType = 'postgresql') {
+  const store = getStore(dbType);
 
   if (addrData.is_default) {
     store.addresses.forEach(a => {
@@ -667,9 +589,8 @@ export async function createAddress(addrData, dbType = 'mysql') {
   return addrData;
 }
 
-export async function updateAddress(addressId, updates, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function updateAddress(addressId, updates, dbType = 'postgresql') {
+  const store = getStore(dbType);
   const idx = store.addresses.findIndex(a => a.address_id === addressId);
   if (idx !== -1) {
     if (updates.is_default) {
@@ -683,9 +604,8 @@ export async function updateAddress(addressId, updates, dbType = 'mysql') {
   return null;
 }
 
-export async function deleteAddress(addressId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function deleteAddress(addressId, dbType = 'postgresql') {
+  const store = getStore(dbType);
   store.addresses = store.addresses.filter(a => a.address_id !== addressId);
   return true;
 }
@@ -694,9 +614,8 @@ export async function deleteAddress(addressId, dbType = 'mysql') {
 // ORDER & PAYMENT OPERATIONS
 // ---------------------------------------------------
 
-export async function addOrderHistoryRecord(historyData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function addOrderHistoryRecord(historyData, dbType = 'postgresql') {
+  const store = getStore(dbType);
   if (!store.order_history) store.order_history = [];
 
   const record = {
@@ -713,9 +632,8 @@ export async function addOrderHistoryRecord(historyData, dbType = 'mysql') {
   return record;
 }
 
-export async function getOrderHistory(orderId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getOrderHistory(orderId, dbType = 'postgresql') {
+  const store = getStore(dbType);
   if (!store.order_history) store.order_history = [];
 
   return store.order_history
@@ -723,9 +641,8 @@ export async function getOrderHistory(orderId, dbType = 'mysql') {
     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 }
 
-export async function createOrder(orderPayload, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function createOrder(orderPayload, dbType = 'postgresql') {
+  const store = getStore(dbType);
 
   const orderId = `ord-${Date.now()}`;
   const orderNumber = `ORD-2026-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -800,9 +717,8 @@ export async function createOrder(orderPayload, dbType = 'mysql') {
   };
 }
 
-export async function getAllOrders(filters = {}, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllOrders(filters = {}, dbType = 'postgresql') {
+  const store = getStore(dbType);
   if (!store.order_history) store.order_history = [];
 
   let list = store.orders.map(ord => {
@@ -810,7 +726,7 @@ export async function getAllOrders(filters = {}, dbType = 'mysql') {
     const addr = store.addresses.find(a => a.address_id === ord.address_id);
     const items = store.order_item.filter(oi => oi.order_id === ord.order_id).map(oi => {
       const prod = store.products.find(p => p.product_id === oi.product_id);
-      return { ...oi, product_name: prod ? prod.product_name : '', brand: prod ? prod.brand : '', seller_id: prod ? prod.seller_id : '' };
+      return { ...oi, product_name: prod ? prod.product_name : '', brand: prod ? prod.brand : '', seller_id: prod ? prod.seller_id : '', image_url: prod ? prod.image_url : '' };
     });
     const pay = store.payments.find(p => p.order_id === ord.order_id);
     const history = store.order_history
@@ -850,14 +766,13 @@ export async function getAllOrders(filters = {}, dbType = 'mysql') {
   return list;
 }
 
-export async function getOrderById(orderId, dbType = 'mysql') {
+export async function getOrderById(orderId, dbType = 'postgresql') {
   const orders = await getAllOrders({}, dbType);
   return orders.find(o => o.order_id === orderId) || null;
 }
 
-export async function updateOrderStatus(orderId, status, performedBy = 'System', dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function updateOrderStatus(orderId, status, performedBy = 'System', dbType = 'postgresql') {
+  const store = getStore(dbType);
   const ord = store.orders.find(o => o.order_id === orderId);
   if (ord) {
     const prevStatus = ord.order_status;
@@ -883,6 +798,12 @@ export async function updateOrderStatus(orderId, status, performedBy = 'System',
       actionText = `Forwarded to Seller by Employee`;
     } else if (upperStatus === 'DELIVERED') {
       actionText = `Order Marked as Delivered by Employee`;
+    } else if (upperStatus === 'OUT_FOR_DELIVERY') {
+      actionText = `Order is Out for Delivery`;
+    } else if (upperStatus === 'PACKED') {
+      actionText = `Order has been Packed`;
+    } else if (upperStatus === 'CONFIRMED') {
+      actionText = `Order Confirmed`;
     }
 
     await addOrderHistoryRecord({
@@ -898,40 +819,76 @@ export async function updateOrderStatus(orderId, status, performedBy = 'System',
   return null;
 }
 
-export async function getAllPayments(dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllPayments(dbType = 'postgresql') {
+  const store = getStore(dbType);
   return store.payments;
 }
 
 // ---------------------------------------------------
-// REVIEWS OPERATIONS
+// REVIEWS OPERATIONS (ENHANCED)
 // ---------------------------------------------------
 
-export async function getReviewsByProductId(productId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getReviewsByProductId(productId, dbType = 'postgresql') {
+  const store = getStore(dbType);
 
   return store.reviews
-    .filter(r => r.product_id === productId)
+    .filter(r => r.product_id === productId && r.is_hidden !== true)
     .map(r => {
       const cust = store.customers.find(c => c.customer_id === r.customer_id);
       return {
         ...r,
-        customer_name: cust ? `${cust.first_name} ${cust.last_name}` : 'Verified Customer'
+        customer_name: cust ? `${cust.first_name} ${cust.last_name}` : 'Verified Customer',
+        verified_purchase: true
       };
     });
 }
 
-export async function createReview(reviewData, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllReviews(dbType = 'postgresql') {
+  const store = getStore(dbType);
+  return store.reviews.map(r => {
+    const cust = store.customers.find(c => c.customer_id === r.customer_id);
+    const prod = store.products.find(p => p.product_id === r.product_id);
+    return {
+      ...r,
+      customer_name: cust ? `${cust.first_name} ${cust.last_name}` : 'Customer',
+      product_name: prod ? prod.product_name : 'Product',
+      verified_purchase: true
+    };
+  });
+}
 
-  // Verify customer has ordered this product
+export async function getReviewsByCustomerId(customerId, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  return store.reviews
+    .filter(r => r.customer_id === customerId)
+    .map(r => {
+      const prod = store.products.find(p => p.product_id === r.product_id);
+      return {
+        ...r,
+        product_name: prod ? prod.product_name : 'Product',
+        product_image: prod ? prod.image_url : '',
+        brand: prod ? prod.brand : ''
+      };
+    });
+}
+
+export async function createReview(reviewData, dbType = 'postgresql') {
+  const store = getStore(dbType);
+
+  // Verify customer has ordered this product AND order is delivered
   const orders = await getAllOrders({ customer_id: reviewData.customer_id }, dbType);
-  const hasPurchased = orders.some(o => o.items.some(i => i.product_id === reviewData.product_id));
+  const deliveredOrders = orders.filter(o => o.order_status === 'DELIVERED');
+  const hasPurchased = deliveredOrders.some(o => o.items.some(i => i.product_id === reviewData.product_id));
   if (!hasPurchased) {
-    throw new Error('A customer can only review products they have purchased.');
+    throw new Error('You can only review products from delivered orders.');
+  }
+
+  // Check for duplicate review
+  const existingReview = store.reviews.find(
+    r => r.customer_id === reviewData.customer_id && r.product_id === reviewData.product_id
+  );
+  if (existingReview) {
+    throw new Error('You have already reviewed this product. You can edit your existing review instead.');
   }
 
   const reviewRecord = {
@@ -940,42 +897,553 @@ export async function createReview(reviewData, dbType = 'mysql') {
     product_id: reviewData.product_id,
     rating: parseInt(reviewData.rating),
     description: reviewData.description,
-    review_date: new Date().toISOString().replace('T', ' ').substring(0, 19)
+    review_date: new Date().toISOString().replace('T', ' ').substring(0, 19),
+    is_hidden: false,
+    is_flagged: false
   };
 
   store.reviews.unshift(reviewRecord);
   return reviewRecord;
 }
 
-export async function deleteReview(reviewId, dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function updateReview(reviewId, customerId, updates, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  const idx = store.reviews.findIndex(r => r.review_id === reviewId && r.customer_id === customerId);
+  if (idx === -1) {
+    throw new Error('Review not found or you do not have permission to edit it.');
+  }
+  
+  if (updates.rating) store.reviews[idx].rating = parseInt(updates.rating);
+  if (updates.description !== undefined) store.reviews[idx].description = updates.description;
+  store.reviews[idx].review_date = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  
+  return store.reviews[idx];
+}
+
+export async function deleteReview(reviewId, dbType = 'postgresql') {
+  const store = getStore(dbType);
   store.reviews = store.reviews.filter(r => r.review_id !== reviewId);
   return true;
 }
+
+export async function deleteReviewByCustomer(reviewId, customerId, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  const idx = store.reviews.findIndex(r => r.review_id === reviewId && r.customer_id === customerId);
+  if (idx === -1) {
+    throw new Error('Review not found or you do not have permission to delete it.');
+  }
+  store.reviews.splice(idx, 1);
+  return true;
+}
+
+// Moderation
+export async function flagReview(reviewId, moderatorEmail, reason, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  const review = store.reviews.find(r => r.review_id === reviewId);
+  if (!review) throw new Error('Review not found.');
+  
+  review.is_flagged = true;
+  
+  if (!store.feedback_moderation) store.feedback_moderation = [];
+  store.feedback_moderation.push({
+    moderation_id: `mod-${Date.now()}`,
+    review_id: reviewId,
+    action: 'FLAGGED',
+    moderator: moderatorEmail,
+    reason: reason || 'Flagged for review',
+    timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
+  });
+  
+  return review;
+}
+
+export async function hideReview(reviewId, moderatorEmail, reason, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  const review = store.reviews.find(r => r.review_id === reviewId);
+  if (!review) throw new Error('Review not found.');
+  
+  review.is_hidden = true;
+  
+  if (!store.feedback_moderation) store.feedback_moderation = [];
+  store.feedback_moderation.push({
+    moderation_id: `mod-${Date.now()}`,
+    review_id: reviewId,
+    action: 'HIDDEN',
+    moderator: moderatorEmail,
+    reason: reason || 'Content violation',
+    timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
+  });
+  
+  return review;
+}
+
+export async function unhideReview(reviewId, moderatorEmail, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  const review = store.reviews.find(r => r.review_id === reviewId);
+  if (!review) throw new Error('Review not found.');
+  
+  review.is_hidden = false;
+  review.is_flagged = false;
+  
+  if (!store.feedback_moderation) store.feedback_moderation = [];
+  store.feedback_moderation.push({
+    moderation_id: `mod-${Date.now()}`,
+    review_id: reviewId,
+    action: 'RESTORED',
+    moderator: moderatorEmail,
+    reason: 'Review restored',
+    timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
+  });
+  
+  return review;
+}
+
+export async function getModerationLog(dbType = 'postgresql') {
+  const store = getStore(dbType);
+  if (!store.feedback_moderation) store.feedback_moderation = [];
+  return store.feedback_moderation.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+
+
+// ---------------------------------------------------
+// RETURN REQUEST OPERATIONS
+// ---------------------------------------------------
+
+const RETURN_WINDOW_DAYS = 30;
+
+const VALID_RETURN_TRANSITIONS = {
+  'RETURN_REQUESTED': ['RETURN_APPROVED', 'RETURN_REJECTED', 'RETURN_CANCELLED'],
+  'RETURN_APPROVED': ['RETURN_SHIPPED', 'RETURN_CANCELLED'],
+  'RETURN_SHIPPED': ['RETURN_IN_TRANSIT', 'RETURN_RECEIVED'],
+  'RETURN_IN_TRANSIT': ['RETURN_RECEIVED'],
+  'RETURN_RECEIVED': ['RETURN_COMPLETED'],
+  'RETURN_REJECTED': [],
+  'RETURN_CANCELLED': [],
+  'RETURN_COMPLETED': []
+};
+
+function generateReturnId() {
+  return `ret-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+}
+
+export async function createReturnRequest(returnData, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  if (!store.return_requests) store.return_requests = [];
+  if (!store.return_items) store.return_items = [];
+  if (!store.return_status_history) store.return_status_history = [];
+
+  const { customer_id, order_id, items, reason, comments } = returnData;
+
+  // Validate order exists and belongs to customer
+  const order = store.orders.find(o => o.order_id === order_id && o.customer_id === customer_id);
+  if (!order) throw new Error('Order not found or does not belong to this customer.');
+
+  // Validate order is delivered
+  if (order.order_status !== 'DELIVERED') {
+    throw new Error('Returns can only be requested for delivered orders.');
+  }
+
+  // Validate return window
+  const deliveryRecord = store.order_history?.find(
+    h => h.order_id === order_id && h.new_status === 'DELIVERED'
+  );
+  if (deliveryRecord) {
+    const deliveredDate = new Date(deliveryRecord.timestamp);
+    const now = new Date();
+    const daysSinceDelivery = Math.floor((now - deliveredDate) / (1000 * 60 * 60 * 24));
+    if (daysSinceDelivery > RETURN_WINDOW_DAYS) {
+      throw new Error(`Return window expired. Returns must be requested within ${RETURN_WINDOW_DAYS} days of delivery.`);
+    }
+  }
+
+  // Validate items
+  const orderItems = store.order_item.filter(oi => oi.order_id === order_id);
+  if (!items || items.length === 0) throw new Error('At least one item must be selected for return.');
+
+  for (const returnItem of items) {
+    const orderItem = orderItems.find(oi => oi.product_id === returnItem.product_id);
+    if (!orderItem) throw new Error(`Product ${returnItem.product_id} was not part of this order.`);
+    
+    if (returnItem.quantity > orderItem.quantity) {
+      throw new Error(`Cannot return more than purchased quantity for product ${returnItem.product_id}.`);
+    }
+    if (returnItem.quantity <= 0) {
+      throw new Error('Return quantity must be at least 1.');
+    }
+
+    // Check for existing active return on same product in same order
+    const existingReturn = store.return_requests.find(r => 
+      r.order_id === order_id && 
+      !['RETURN_REJECTED', 'RETURN_CANCELLED', 'RETURN_COMPLETED'].includes(r.return_status)
+    );
+    if (existingReturn) {
+      const existingReturnItem = store.return_items.find(ri => 
+        ri.return_id === existingReturn.return_id && ri.product_id === returnItem.product_id
+      );
+      if (existingReturnItem) {
+        throw new Error(`An active return request already exists for product ${returnItem.product_id} on this order.`);
+      }
+    }
+  }
+
+  const returnId = generateReturnId();
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+  const returnRequest = {
+    return_id: returnId,
+    order_id,
+    customer_id,
+    reason: reason || 'Other',
+    comments: comments || '',
+    return_status: 'RETURN_REQUESTED',
+    request_date: now,
+    approval_date: null,
+    rejection_reason: null,
+    shipment_date: null,
+    courier_name: null,
+    tracking_number: null,
+    received_date: null,
+    completed_date: null,
+    refund_status: 'PENDING',
+    refund_amount: 0
+  };
+
+  // Calculate refund amount
+  let refundAmount = 0;
+  const returnItemRecords = items.map(item => {
+    const orderItem = orderItems.find(oi => oi.product_id === item.product_id);
+    const prod = store.products.find(p => p.product_id === item.product_id);
+    const unitPrice = orderItem ? parseFloat(orderItem.unit_price) : 0;
+    const itemRefund = unitPrice * item.quantity;
+    refundAmount += itemRefund;
+
+    return {
+      return_item_id: `ri-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      return_id: returnId,
+      product_id: item.product_id,
+      product_name: prod ? prod.product_name : '',
+      brand: prod ? prod.brand : '',
+      image_url: prod ? prod.image_url : '',
+      seller_id: prod ? prod.seller_id : '',
+      quantity: item.quantity,
+      unit_price: unitPrice,
+      refund_amount: itemRefund
+    };
+  });
+
+  returnRequest.refund_amount = parseFloat(refundAmount.toFixed(2));
+  store.return_requests.push(returnRequest);
+  store.return_items.push(...returnItemRecords);
+
+  // Add status history
+  store.return_status_history.push({
+    history_id: `rsh-${Date.now()}`,
+    return_id: returnId,
+    status: 'RETURN_REQUESTED',
+    performed_by: customer_id,
+    timestamp: now,
+    notes: `Return requested: ${reason}`
+  });
+
+  // Create notification for employees
+  await createNotification({
+    recipient_role: 'EMPLOYEE',
+    type: 'RETURN_REQUEST',
+    title: 'New Return Request',
+    message: `Customer has submitted a return request (${returnId}) for order ${order.order_number}.`,
+    reference_id: returnId,
+    reference_type: 'RETURN'
+  }, dbType);
+
+  return { ...returnRequest, items: returnItemRecords };
+}
+
+export async function getReturnRequests(filters = {}, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  if (!store.return_requests) store.return_requests = [];
+  if (!store.return_items) store.return_items = [];
+
+  let requests = store.return_requests.map(rr => {
+    const order = store.orders.find(o => o.order_id === rr.order_id);
+    const cust = store.customers.find(c => c.customer_id === rr.customer_id);
+    const items = (store.return_items || []).filter(ri => ri.return_id === rr.return_id);
+    const statusHistory = (store.return_status_history || [])
+      .filter(h => h.return_id === rr.return_id)
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    return {
+      ...rr,
+      order_number: order ? order.order_number : '',
+      order_date: order ? order.order_date : '',
+      customer_name: cust ? `${cust.first_name} ${cust.last_name}` : 'Customer',
+      customer_email: cust ? cust.email : '',
+      items,
+      status_history: statusHistory
+    };
+  });
+
+  if (filters.customer_id) {
+    requests = requests.filter(r => r.customer_id === filters.customer_id);
+  }
+
+  if (filters.seller_id) {
+    // Show only returns that have items belonging to this seller AND are approved+
+    requests = requests.filter(r => {
+      const sellerItems = r.items.filter(i => i.seller_id === filters.seller_id);
+      if (sellerItems.length === 0) return false;
+      // Seller can see after employee approval
+      return !['RETURN_REQUESTED'].includes(r.return_status);
+    });
+    // Filter items to only show this seller's items
+    requests = requests.map(r => ({
+      ...r,
+      items: r.items.filter(i => i.seller_id === filters.seller_id)
+    }));
+  }
+
+  if (filters.status) {
+    requests = requests.filter(r => r.return_status === filters.status);
+  }
+
+  return requests.sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
+}
+
+export async function getReturnById(returnId, dbType = 'postgresql') {
+  const requests = await getReturnRequests({}, dbType);
+  return requests.find(r => r.return_id === returnId) || null;
+}
+
+export async function updateReturnStatus(returnId, newStatus, performedBy, data = {}, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  if (!store.return_requests) store.return_requests = [];
+  if (!store.return_status_history) store.return_status_history = [];
+
+  const returnReq = store.return_requests.find(r => r.return_id === returnId);
+  if (!returnReq) throw new Error('Return request not found.');
+
+  // Validate transition
+  const currentStatus = returnReq.return_status;
+  const validNext = VALID_RETURN_TRANSITIONS[currentStatus] || [];
+  if (!validNext.includes(newStatus)) {
+    throw new Error(`Invalid status transition from ${currentStatus} to ${newStatus}. Valid transitions: ${validNext.join(', ') || 'none'}.`);
+  }
+
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  returnReq.return_status = newStatus;
+
+  // Handle specific status transitions
+  if (newStatus === 'RETURN_APPROVED') {
+    returnReq.approval_date = now;
+
+    await createNotification({
+      recipient_id: returnReq.customer_id,
+      recipient_role: 'CUSTOMER',
+      type: 'RETURN_APPROVED',
+      title: 'Return Request Approved',
+      message: `Your return request (${returnId}) has been approved. You can now ship the product back.`,
+      reference_id: returnId,
+      reference_type: 'RETURN'
+    }, dbType);
+  }
+
+  if (newStatus === 'RETURN_REJECTED') {
+    returnReq.rejection_reason = data.rejection_reason || 'Request did not meet return policy requirements.';
+    returnReq.refund_status = 'NOT_APPLICABLE';
+
+    await createNotification({
+      recipient_id: returnReq.customer_id,
+      recipient_role: 'CUSTOMER',
+      type: 'RETURN_REJECTED',
+      title: 'Return Request Rejected',
+      message: `Your return request (${returnId}) has been rejected. Reason: ${returnReq.rejection_reason}`,
+      reference_id: returnId,
+      reference_type: 'RETURN'
+    }, dbType);
+  }
+
+  if (newStatus === 'RETURN_SHIPPED') {
+    returnReq.shipment_date = now;
+    returnReq.courier_name = data.courier_name || null;
+    returnReq.tracking_number = data.tracking_number || null;
+
+    await createNotification({
+      recipient_role: 'EMPLOYEE',
+      type: 'RETURN_SHIPPED',
+      title: 'Return Shipment Initiated',
+      message: `Customer has shipped return (${returnId}). Courier: ${data.courier_name || 'N/A'}, Tracking: ${data.tracking_number || 'N/A'}.`,
+      reference_id: returnId,
+      reference_type: 'RETURN'
+    }, dbType);
+
+    // Also notify relevant sellers
+    const returnItems = (store.return_items || []).filter(ri => ri.return_id === returnId);
+    const sellerIds = [...new Set(returnItems.map(ri => ri.seller_id))];
+    for (const sellerId of sellerIds) {
+      await createNotification({
+        recipient_id: sellerId,
+        recipient_role: 'SELLER',
+        type: 'RETURN_SHIPPED',
+        title: 'Return Shipment Incoming',
+        message: `A customer has shipped a return (${returnId}) for your products.`,
+        reference_id: returnId,
+        reference_type: 'RETURN'
+      }, dbType);
+    }
+  }
+
+  if (newStatus === 'RETURN_IN_TRANSIT') {
+    // Status update only
+  }
+
+  if (newStatus === 'RETURN_RECEIVED') {
+    returnReq.received_date = now;
+
+    await createNotification({
+      recipient_id: returnReq.customer_id,
+      recipient_role: 'CUSTOMER',
+      type: 'RETURN_RECEIVED',
+      title: 'Return Received',
+      message: `Your returned product (${returnId}) has been received. The return will be finalized shortly.`,
+      reference_id: returnId,
+      reference_type: 'RETURN'
+    }, dbType);
+  }
+
+  if (newStatus === 'RETURN_COMPLETED') {
+    returnReq.completed_date = now;
+    returnReq.refund_status = 'REFUND_INITIATED';
+
+    // Restore inventory
+    const returnItems = (store.return_items || []).filter(ri => ri.return_id === returnId);
+    returnItems.forEach(ri => {
+      const prod = store.products.find(p => p.product_id === ri.product_id);
+      if (prod) {
+        prod.stock_qty += ri.quantity;
+      }
+    });
+
+    await createNotification({
+      recipient_id: returnReq.customer_id,
+      recipient_role: 'CUSTOMER',
+      type: 'RETURN_COMPLETED',
+      title: 'Return Completed',
+      message: `Your return (${returnId}) has been completed. Refund of $${returnReq.refund_amount.toFixed(2)} has been initiated.`,
+      reference_id: returnId,
+      reference_type: 'RETURN'
+    }, dbType);
+  }
+
+  if (newStatus === 'RETURN_CANCELLED') {
+    returnReq.refund_status = 'NOT_APPLICABLE';
+  }
+
+  // Add status history
+  store.return_status_history.push({
+    history_id: `rsh-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    return_id: returnId,
+    status: newStatus,
+    performed_by: performedBy,
+    timestamp: now,
+    notes: data.notes || `Status changed to ${newStatus}`
+  });
+
+  return returnReq;
+}
+
+
+// ---------------------------------------------------
+// NOTIFICATIONS OPERATIONS
+// ---------------------------------------------------
+
+export async function createNotification(notifData, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  if (!store.notifications) store.notifications = [];
+
+  const notification = {
+    notification_id: `notif-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    recipient_id: notifData.recipient_id || null,
+    recipient_role: notifData.recipient_role || null,
+    type: notifData.type,
+    title: notifData.title,
+    message: notifData.message,
+    reference_id: notifData.reference_id || null,
+    reference_type: notifData.reference_type || null,
+    is_read: false,
+    created_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
+  };
+
+  store.notifications.push(notification);
+  return notification;
+}
+
+export async function getNotifications(filters = {}, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  if (!store.notifications) store.notifications = [];
+
+  let notifs = [...store.notifications];
+
+  if (filters.recipient_id) {
+    notifs = notifs.filter(n => 
+      n.recipient_id === filters.recipient_id || 
+      (n.recipient_role && n.recipient_role === filters.role && !n.recipient_id)
+    );
+  } else if (filters.role) {
+    notifs = notifs.filter(n => 
+      n.recipient_role === filters.role || 
+      n.recipient_id === filters.ref_id
+    );
+  }
+
+  return notifs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+export async function markNotificationRead(notificationId, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  if (!store.notifications) store.notifications = [];
+
+  const notif = store.notifications.find(n => n.notification_id === notificationId);
+  if (notif) {
+    notif.is_read = true;
+    return notif;
+  }
+  return null;
+}
+
+export async function markAllNotificationsRead(filters = {}, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  if (!store.notifications) store.notifications = [];
+
+  store.notifications.forEach(n => {
+    if (filters.recipient_id && (n.recipient_id === filters.recipient_id || n.recipient_role === filters.role)) {
+      n.is_read = true;
+    } else if (filters.role && (n.recipient_role === filters.role || n.recipient_id === filters.ref_id)) {
+      n.is_read = true;
+    }
+  });
+
+  return true;
+}
+
 
 // ---------------------------------------------------
 // CUSTOMERS & SELLERS LIST & STATS
 // ---------------------------------------------------
 
-export async function getAllCustomers(dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllCustomers(dbType = 'postgresql') {
+  const store = getStore(dbType);
   return store.customers.map(c => ({
     ...c,
     age: calculateAge(c.date_of_birth)
   }));
 }
 
-export async function getAllSellers(dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAllSellers(dbType = 'postgresql') {
+  const store = getStore(dbType);
   return Promise.all(store.sellers.map(s => getSellerById(s.seller_id, dbType)));
 }
 
-export async function getAdminStats(dbType = 'mysql') {
-  const normType = (dbType || 'mysql').toLowerCase();
-  const store = memoryStores[normType] || memoryStores.mysql;
+export async function getAdminStats(dbType = 'postgresql') {
+  const store = getStore(dbType);
 
   const totalCustomers = store.customers.length;
   const totalSellers = store.sellers.length;
@@ -983,6 +1451,9 @@ export async function getAdminStats(dbType = 'mysql') {
   const totalOrders = store.orders.length;
   const pendingOrders = store.orders.filter(o => o.order_status === 'Pending').length;
   const totalRevenue = store.orders.reduce((acc, o) => acc + parseFloat(o.order_amount), 0);
+  const totalReturns = (store.return_requests || []).length;
+  const pendingReturns = (store.return_requests || []).filter(r => r.return_status === 'RETURN_REQUESTED').length;
+  const totalReviews = store.reviews.length;
 
   return {
     totalCustomers,
@@ -991,6 +1462,9 @@ export async function getAdminStats(dbType = 'mysql') {
     totalOrders,
     pendingOrders,
     totalRevenue: parseFloat(totalRevenue.toFixed(2)),
-    activeDatabase: normType.toUpperCase()
+    totalReturns,
+    pendingReturns,
+    totalReviews,
+    activeDatabase: normalizeDbType(dbType).toUpperCase()
   };
 }

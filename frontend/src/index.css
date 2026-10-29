@@ -123,12 +123,13 @@ input, select, textarea {
   letter-spacing: 0.03em;
 }
 
-.badge-mysql {
+.badge-cyan {
   background: rgba(0, 117, 143, 0.2);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
+.badge-postgresql,
 .badge-postgres {
   background: rgba(51, 103, 145, 0.25);
   color: #60a5fa;

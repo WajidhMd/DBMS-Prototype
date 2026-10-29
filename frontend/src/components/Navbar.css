@@ -74,12 +74,6 @@
   color: var(--text-primary);
 }
 
-.db-pill-btn.active-mysql {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  color: #fff;
-  box-shadow: 0 0 10px rgba(2, 132, 199, 0.4);
-}
-
 .db-pill-btn.active-postgresql {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #fff;

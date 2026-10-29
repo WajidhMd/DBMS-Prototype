@@ -1,0 +1,233 @@
+/* Visual Tracking Timeline Styles */
+
+.tracker-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin: 1.25rem 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.tracker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tracker-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tracker-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.tracker-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-input);
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+/* Horizontal Track Timeline */
+.timeline-track-wrapper {
+  position: relative;
+  margin: 2.5rem 1rem 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.timeline-base-line {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  z-index: 1;
+}
+
+.timeline-progress-line {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);
+  border-radius: 4px;
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+}
+
+/* Moving Truck Container */
+.truck-carrier {
+  position: absolute;
+  top: 0px;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.truck-bubble {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.8), 0 4px 8px rgba(0, 0, 0, 0.4);
+  border: 2px solid #fff;
+  animation: truckBounce 1.8s infinite ease-in-out;
+}
+
+@keyframes truckBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.truck-label-live {
+  margin-top: 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(139, 92, 246, 0.9);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* Timeline Stages */
+.timeline-stages {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  z-index: 3;
+}
+
+.timeline-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  position: relative;
+}
+
+.stage-node {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+  margin-bottom: 0.75rem;
+  z-index: 3;
+}
+
+.timeline-stage.completed .stage-node {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+.timeline-stage.current .stage-node {
+  background: #8b5cf6;
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.7);
+  transform: scale(1.15);
+}
+
+.timeline-stage.upcoming .stage-node {
+  opacity: 0.45;
+}
+
+.stage-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  max-width: 90px;
+  line-height: 1.25;
+}
+
+.timeline-stage.current .stage-label {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.timeline-stage.completed .stage-label {
+  color: var(--text-primary);
+}
+
+.stage-timestamp {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Rejected State */
+.timeline-stage.rejected .stage-node {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.5);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 680px) {
+  .stage-label {
+    font-size: 0.7rem;
+    max-width: 60px;
+  }
+  .stage-node {
+    width: 30px;
+    height: 30px;
+    font-size: 0.75rem;
+  }
+  .truck-bubble {
+    width: 32px;
+    height: 32px;
+  }
+  .truck-label-live {
+    display: none;
+  }
+}

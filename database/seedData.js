@@ -1,4 +1,4 @@
-// Standard Seed Data shared across MySQL, PostgreSQL, and MongoDB
+// Standard Seed Data shared across PostgreSQL and MongoDB
 import bcrypt from 'bcryptjs';
 
 // Pre-calculated hash for "password123"
@@ -255,15 +255,18 @@ export const sampleCartItems = [
   }
 ];
 
+const nowMs = Date.now();
+const formatTs = (ms) => new Date(ms).toISOString().replace('T', ' ').substring(0, 19);
+
 export const sampleOrders = [
   {
     order_id: 'ord-001',
     customer_id: 'cust-001',
     address_id: 'addr-001',
     order_number: 'ORD-2026-88101',
-    order_date: '2026-02-10 14:20:00',
-    shipping_date: '2026-02-11 11:30:00',
-    approx_delivery_date: '2026-02-15',
+    order_date: formatTs(nowMs - 7 * 86400000),
+    shipping_date: formatTs(nowMs - 6 * 86400000),
+    approx_delivery_date: formatTs(nowMs - 5 * 86400000).substring(0, 10),
     order_amount: 379.94,
     order_status: 'DELIVERED'
   },
@@ -288,7 +291,7 @@ export const sampleOrderHistory = [
     performed_by: 'john.doe@example.com',
     previous_status: null,
     new_status: 'ORDER_PLACED',
-    timestamp: '2026-02-10 14:20:00'
+    timestamp: formatTs(nowMs - 7 * 86400000)
   },
   {
     history_id: 'hist-002',
@@ -297,7 +300,7 @@ export const sampleOrderHistory = [
     performed_by: 'employee@ecommerce.com',
     previous_status: 'ORDER_PLACED',
     new_status: 'SENT_TO_SELLER',
-    timestamp: '2026-02-10 15:00:00'
+    timestamp: formatTs(nowMs - 6.5 * 86400000)
   },
   {
     history_id: 'hist-003',
@@ -306,16 +309,16 @@ export const sampleOrderHistory = [
     performed_by: 'techworld@seller.com',
     previous_status: 'SENT_TO_SELLER',
     new_status: 'ORDER_CONFIRMED',
-    timestamp: '2026-02-10 16:30:00'
+    timestamp: formatTs(nowMs - 6.2 * 86400000)
   },
   {
     history_id: 'hist-004',
     order_id: 'ord-001',
-    action: 'Shipping Requested by Seller (Order Shipped, Approx Delivery: 2026-02-15)',
+    action: 'Shipping Requested by Seller (Order Shipped, Approx Delivery: 4 days)',
     performed_by: 'techworld@seller.com',
     previous_status: 'ORDER_CONFIRMED',
     new_status: 'SHIPPED',
-    timestamp: '2026-02-11 11:30:00'
+    timestamp: formatTs(nowMs - 6 * 86400000)
   },
   {
     history_id: 'hist-005',
@@ -324,7 +327,7 @@ export const sampleOrderHistory = [
     performed_by: 'employee@ecommerce.com',
     previous_status: 'SHIPPED',
     new_status: 'DELIVERED',
-    timestamp: '2026-02-12 09:00:00'
+    timestamp: formatTs(nowMs - 5 * 86400000)
   },
   {
     history_id: 'hist-006',

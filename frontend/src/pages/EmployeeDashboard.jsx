@@ -17,32 +17,58 @@ import {
   ShieldCheck,
   AlertCircle,
   FileText,
-  Calendar
+  Calendar,
+  RotateCcw,
+  Check,
+  X,
+  MessageSquare,
+  Flag,
+  EyeOff,
+  Eye,
+  AlertTriangle
 } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
+import VisualTracker from '../components/VisualTracker';
 
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const { targetDb } = useDb();
 
   const [orders, setOrders] = useState([]);
+  const [returns, setReturns] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('requests'); // requests | sent | confirmed | shipped | delivered
+  const [activeTab, setActiveTab] = useState('requests'); // requests | sent | confirmed | shipped | delivered | returns | feedback
   const [actionLoading, setActionLoading] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState(null);
 
+  // Return Rejection Modal state
+  const [rejectingReturnId, setRejectingReturnId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  // Moderation state
+  const [moderationReason, setModerationReason] = useState('');
+  const [activeModerationReview, setActiveModerationReview] = useState(null);
+  const [moderationAction, setModerationAction] = useState(''); // 'flag' | 'hide'
+
   useEffect(() => {
-    fetchOrders();
+    fetchAllData();
   }, [targetDb]);
 
-  const fetchOrders = async () => {
+  const fetchAllData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/orders');
-      setOrders(res.data || []);
+      const [ordersRes, returnsRes, reviewsRes] = await Promise.all([
+        api.get('/orders'),
+        api.get('/returns').catch(() => ({ data: [] })),
+        api.get('/reviews/admin').catch(() => ({ data: [] }))
+      ]);
+      setOrders(ordersRes.data || []);
+      setReturns(returnsRes.data || []);
+      setReviews(reviewsRes.data || []);
     } catch (err) {
-      console.error('Failed to load employee orders:', err);
+      console.error('Failed to load employee dashboard:', err);
     } finally {
       setLoading(false);
     }
@@ -52,7 +78,7 @@ export default function EmployeeDashboard() {
     try {
       setActionLoading(orderId);
       await api.post(`/orders/${orderId}/forward`);
-      await fetchOrders();
+      await fetchAllData();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to forward order to seller.');
     } finally {
@@ -64,9 +90,103 @@ export default function EmployeeDashboard() {
     try {
       setActionLoading(orderId);
       await api.post(`/orders/${orderId}/mark-delivered`);
-      await fetchOrders();
+      await fetchAllData();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to mark order as delivered.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Return actions
+  const handleApproveReturn = async (returnId) => {
+    try {
+      setActionLoading(returnId);
+      await api.post(`/returns/${returnId}/approve`);
+      alert('Return request approved! Customer has been notified and can now ship.');
+      await fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to approve return.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleConfirmRejectReturn = async (e) => {
+    e.preventDefault();
+    if (!rejectingReturnId) return;
+    try {
+      setActionLoading(rejectingReturnId);
+      await api.post(`/returns/${rejectingReturnId}/reject`, {
+        rejection_reason: rejectionReason || 'Request does not meet return eligibility criteria.'
+      });
+      alert('Return request rejected. Customer has been notified with the rejection reason.');
+      setRejectingReturnId(null);
+      setRejectionReason('');
+      await fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to reject return.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleMarkReturnInTransit = async (returnId) => {
+    try {
+      setActionLoading(returnId);
+      await api.post(`/returns/${returnId}/transit`);
+      await fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to mark return in transit.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCompleteReturn = async (returnId) => {
+    try {
+      setActionLoading(returnId);
+      await api.post(`/returns/${returnId}/complete`);
+      alert('Return completed! Product restocked and refund initiated.');
+      await fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to complete return.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Review moderation actions
+  const handleExecuteModeration = async (e) => {
+    e.preventDefault();
+    if (!activeModerationReview) return;
+    try {
+      setActionLoading(activeModerationReview.review_id);
+      if (moderationAction === 'flag') {
+        await api.post(`/reviews/${activeModerationReview.review_id}/flag`, { reason: moderationReason });
+        alert('Review flagged for content review.');
+      } else if (moderationAction === 'hide') {
+        await api.post(`/reviews/${activeModerationReview.review_id}/hide`, { reason: moderationReason });
+        alert('Review hidden from catalog.');
+      }
+      setActiveModerationReview(null);
+      setModerationReason('');
+      await fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Moderation action failed.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnhideReview = async (reviewId) => {
+    try {
+      setActionLoading(reviewId);
+      await api.post(`/reviews/${reviewId}/unhide`);
+      alert('Review unhidden and restored to public catalog.');
+      await fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to restore review.');
     } finally {
       setActionLoading(null);
     }
@@ -94,6 +214,11 @@ export default function EmployeeDashboard() {
     (o.order_status || '').toUpperCase() === 'DELIVERED'
   );
 
+  const pendingReturnRequests = returns.filter(r => r.return_status === 'RETURN_REQUESTED');
+  const activeReturnShipments = returns.filter(r =>
+    ['RETURN_APPROVED', 'RETURN_SHIPPED', 'RETURN_IN_TRANSIT', 'RETURN_RECEIVED'].includes(r.return_status)
+  );
+
   const toggleExpand = (id) => {
     setExpandedOrder(expandedOrder === id ? null : id);
   };
@@ -116,50 +241,68 @@ export default function EmployeeDashboard() {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <span className={`badge badge-${targetDb}`}>{targetDb.toUpperCase()} ENGINE</span>
-            <span className="badge badge-success">EMPLOYEE INTERMEDIARY PORTAL</span>
+            <span className={`badge badge-${targetDb}`}>{targetDb.toUpperCase()} ENGINE ACTIVE</span>
+            <span className="badge badge-success">EMPLOYEE WORKFLOW CONSOLE</span>
           </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Employee Operations Dashboard</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Logged in as <strong>{user?.profile?.name || user?.email}</strong> • Managing Order Lifecycle (Forwarding & Delivery)
+            Logged in: <strong style={{ color: 'var(--text-primary)' }}>{user?.email}</strong> • Managing Orders, Returns & Reviews
           </p>
         </div>
 
-        <button onClick={fetchOrders} className="btn-secondary-outline" style={{ width: 'auto', padding: '0.65rem 1.25rem' }}>
-          Refresh Order Stream
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setActiveTab('returns')}
+            className="btn-primary-block"
+            style={{ padding: '0.65rem 1.25rem', marginTop: 0, backgroundColor: '#ec4899', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <RotateCcw size={17} /> Return Requests ({pendingReturnRequests.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className="btn-secondary-outline"
+            style={{ padding: '0.65rem 1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <MessageSquare size={17} /> Feedback ({reviews.length})
+          </button>
+        </div>
       </div>
 
-      {/* Metrics Row */}
+      {/* KPI Stats Row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1.25rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gap: '1rem',
         marginBottom: '2rem'
       }}>
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>New Order Requests</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-amber)' }}>{pendingRequests.length}</div>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>New Orders</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-amber)' }}>{pendingRequests.length}</div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Sent to Sellers</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>{sentToSellerOrders.length}</div>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Sent to Sellers</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>{sentToSellerOrders.length}</div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Seller Confirmed</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-purple)' }}>{confirmedOrders.length}</div>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Seller Confirmed</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-purple)' }}>{confirmedOrders.length}</div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Shipped (Pending Delivery)</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>{shippedOrders.length}</div>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Shipped</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#3b82f6' }}>{shippedOrders.length}</div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Delivered</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-green)' }}>{deliveredOrders.length}</div>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Pending Returns</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#ec4899' }}>{pendingReturnRequests.length}</div>
+        </div>
+
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Delivered Orders</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-green)' }}>{deliveredOrders.length}</div>
         </div>
       </div>
 
@@ -168,15 +311,17 @@ export default function EmployeeDashboard() {
         <button
           onClick={() => setActiveTab('requests')}
           style={{
-            padding: '0.65rem 1.25rem',
+            padding: '0.65rem 1.15rem',
             borderRadius: 'var(--radius-md)',
-            fontSize: '0.88rem',
+            fontSize: '0.85rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.4rem',
             backgroundColor: activeTab === 'requests' ? 'var(--accent-purple)' : 'transparent',
-            color: activeTab === 'requests' ? '#fff' : 'var(--text-secondary)'
+            color: activeTab === 'requests' ? '#fff' : 'var(--text-secondary)',
+            border: 'none',
+            cursor: 'pointer'
           }}
         >
           <Clock size={16} /> New Requests ({pendingRequests.length})
@@ -185,263 +330,564 @@ export default function EmployeeDashboard() {
         <button
           onClick={() => setActiveTab('sent')}
           style={{
-            padding: '0.65rem 1.25rem',
+            padding: '0.65rem 1.15rem',
             borderRadius: 'var(--radius-md)',
-            fontSize: '0.88rem',
+            fontSize: '0.85rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.4rem',
             backgroundColor: activeTab === 'sent' ? 'var(--accent-purple)' : 'transparent',
-            color: activeTab === 'sent' ? '#fff' : 'var(--text-secondary)'
+            color: activeTab === 'sent' ? '#fff' : 'var(--text-secondary)',
+            border: 'none',
+            cursor: 'pointer'
           }}
         >
-          <Send size={16} /> Forwarded to Sellers ({sentToSellerOrders.length})
+          <Send size={16} /> Forwarded ({sentToSellerOrders.length})
         </button>
 
         <button
           onClick={() => setActiveTab('confirmed')}
           style={{
-            padding: '0.65rem 1.25rem',
+            padding: '0.65rem 1.15rem',
             borderRadius: 'var(--radius-md)',
-            fontSize: '0.88rem',
+            fontSize: '0.85rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.4rem',
             backgroundColor: activeTab === 'confirmed' ? 'var(--accent-purple)' : 'transparent',
-            color: activeTab === 'confirmed' ? '#fff' : 'var(--text-secondary)'
+            color: activeTab === 'confirmed' ? '#fff' : 'var(--text-secondary)',
+            border: 'none',
+            cursor: 'pointer'
           }}
         >
-          <ShieldCheck size={16} /> Seller Confirmed ({confirmedOrders.length})
+          <ShieldCheck size={16} /> Confirmed ({confirmedOrders.length})
         </button>
 
         <button
           onClick={() => setActiveTab('shipped')}
           style={{
-            padding: '0.65rem 1.25rem',
+            padding: '0.65rem 1.15rem',
             borderRadius: 'var(--radius-md)',
-            fontSize: '0.88rem',
+            fontSize: '0.85rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.4rem',
             backgroundColor: activeTab === 'shipped' ? 'var(--accent-purple)' : 'transparent',
-            color: activeTab === 'shipped' ? '#fff' : 'var(--text-secondary)'
+            color: activeTab === 'shipped' ? '#fff' : 'var(--text-secondary)',
+            border: 'none',
+            cursor: 'pointer'
           }}
         >
-          <Truck size={16} /> Order Shipped ({shippedOrders.length})
+          <Truck size={16} /> Shipped ({shippedOrders.length})
         </button>
 
         <button
           onClick={() => setActiveTab('delivered')}
           style={{
-            padding: '0.65rem 1.25rem',
+            padding: '0.65rem 1.15rem',
             borderRadius: 'var(--radius-md)',
-            fontSize: '0.88rem',
+            fontSize: '0.85rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.4rem',
             backgroundColor: activeTab === 'delivered' ? 'var(--accent-purple)' : 'transparent',
-            color: activeTab === 'delivered' ? '#fff' : 'var(--text-secondary)'
+            color: activeTab === 'delivered' ? '#fff' : 'var(--text-secondary)',
+            border: 'none',
+            cursor: 'pointer'
           }}
         >
           <CheckCircle size={16} /> Delivered ({deliveredOrders.length})
         </button>
+
+        {/* Dedicated Return Approvals Tab */}
+        <button
+          onClick={() => setActiveTab('returns')}
+          style={{
+            padding: '0.65rem 1.15rem',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            backgroundColor: activeTab === 'returns' ? '#ec4899' : 'transparent',
+            color: activeTab === 'returns' ? '#fff' : 'var(--text-secondary)',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          <RotateCcw size={16} /> Return Requests & Approvals ({returns.length})
+        </button>
+
+        {/* Dedicated Feedback Management Tab */}
+        <button
+          onClick={() => setActiveTab('feedback')}
+          style={{
+            padding: '0.65rem 1.15rem',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            backgroundColor: activeTab === 'feedback' ? '#10b981' : 'transparent',
+            color: activeTab === 'feedback' ? '#fff' : 'var(--text-secondary)',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          <MessageSquare size={16} /> Feedback Moderation ({reviews.length})
+        </button>
       </div>
 
-      {/* Orders List Container */}
-      <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1.75rem' }}>
-        {loading ? (
-          <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '3rem' }}>Loading orders...</p>
-        ) : (
-          <>
-            {/* TAB 1: NEW ORDER REQUESTS */}
-            {activeTab === 'requests' && (
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-                  Customer Order Requests (Awaiting Employee Forwarding)
-                </h3>
+      {loading ? (
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '3rem' }}>Loading data records...</p>
+      ) : activeTab === 'returns' ? (
+        /* Return Requests & Approval Section */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {returns.length === 0 ? (
+            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '3.5rem 1rem', textAlign: 'center' }}>
+              <RotateCcw size={40} style={{ opacity: 0.4, marginBottom: '0.75rem', color: '#ec4899' }} />
+              <h3>No Return Requests</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>No incoming customer returns in the system.</p>
+            </div>
+          ) : (
+            returns.map(ret => {
+              const isPending = ret.return_status === 'RETURN_REQUESTED';
+              const isApproved = ret.return_status === 'RETURN_APPROVED';
+              const isShipped = ret.return_status === 'RETURN_SHIPPED';
+              const isInTransit = ret.return_status === 'RETURN_IN_TRANSIT';
+              const isReceived = ret.return_status === 'RETURN_RECEIVED';
+              const isCompleted = ret.return_status === 'RETURN_COMPLETED';
+              const isRejected = ret.return_status === 'RETURN_REJECTED';
 
-                {pendingRequests.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                    <CheckCircle size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-                    <p>No new customer order requests pending employee forwarding.</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {pendingRequests.map(ord => (
-                      <OrderCard
-                        key={ord.order_id}
-                        ord={ord}
-                        expanded={expandedOrder === ord.order_id}
-                        onToggle={() => toggleExpand(ord.order_id)}
-                        onViewInvoice={() => setSelectedInvoiceOrder(ord)}
-                        actionButton={
+              return (
+                <div
+                  key={ret.return_id}
+                  style={{
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '1.5rem',
+                    boxShadow: 'var(--shadow-card)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                        <strong style={{ fontSize: '1.15rem', color: '#ec4899' }}>{ret.return_id}</strong>
+                        <span className="badge badge-warning" style={{ backgroundColor: isPending ? '#f59e0b' : isCompleted ? '#10b981' : isRejected ? '#ef4444' : '#8b5cf6', color: '#fff' }}>
+                          {ret.return_status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+                        <span>Order: <strong>{ret.order_number}</strong></span>
+                        <span>Customer: <strong>{ret.customer_name}</strong> ({ret.customer_email})</span>
+                        <span>Date: <strong>{ret.request_date}</strong></span>
+                        <span>Reason: <strong style={{ color: 'var(--text-primary)' }}>{ret.reason}</strong></span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {isPending && (
+                        <>
                           <button
-                            onClick={() => handleForwardToSeller(ord.order_id)}
-                            disabled={actionLoading === ord.order_id}
+                            onClick={() => handleApproveReturn(ret.return_id)}
+                            disabled={actionLoading === ret.return_id}
                             className="btn-primary-block"
-                            style={{ width: 'auto', marginTop: 0, padding: '0.6rem 1.2rem' }}
-                          >
-                            <Send size={16} /> {actionLoading === ord.order_id ? 'Forwarding...' : 'Forward Order to Seller'}
-                          </button>
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB 2: FORWARDED TO SELLERS */}
-            {activeTab === 'sent' && (
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-                  Orders Forwarded to Sellers (Awaiting Seller Confirmation)
-                </h3>
-
-                {sentToSellerOrders.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                    <Send size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-                    <p>No orders currently waiting for seller confirmation.</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {sentToSellerOrders.map(ord => (
-                      <OrderCard
-                        key={ord.order_id}
-                        ord={ord}
-                        expanded={expandedOrder === ord.order_id}
-                        onToggle={() => toggleExpand(ord.order_id)}
-                        onViewInvoice={() => setSelectedInvoiceOrder(ord)}
-                        actionBadge={
-                          <span className="badge badge-warning" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>
-                            Forwarded to Seller (Awaiting Confirmation)
-                          </span>
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB 3: SELLER CONFIRMED ORDERS */}
-            {activeTab === 'confirmed' && (
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-                  Orders Confirmed by Seller (Awaiting Seller Shipping Request)
-                </h3>
-
-                {confirmedOrders.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                    <ShieldCheck size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-                    <p>No seller confirmed orders pending shipping.</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {confirmedOrders.map(ord => (
-                      <OrderCard
-                        key={ord.order_id}
-                        ord={ord}
-                        expanded={expandedOrder === ord.order_id}
-                        onToggle={() => toggleExpand(ord.order_id)}
-                        onViewInvoice={() => setSelectedInvoiceOrder(ord)}
-                        actionBadge={
-                          <span className="badge badge-cyan" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>
-                            Order Confirmed by Seller
-                          </span>
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB 4: SHIPPED ORDERS (EMPLOYEE MARK AS DELIVERED) */}
-            {activeTab === 'shipped' && (
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-                  Shipped Orders (Employee Exclusive Action: Mark as Delivered)
-                </h3>
-
-                {shippedOrders.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                    <Truck size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-                    <p>No orders currently in SHIPPED status.</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {shippedOrders.map(ord => (
-                      <OrderCard
-                        key={ord.order_id}
-                        ord={ord}
-                        expanded={expandedOrder === ord.order_id}
-                        onToggle={() => toggleExpand(ord.order_id)}
-                        onViewInvoice={() => setSelectedInvoiceOrder(ord)}
-                        actionButton={
-                          <button
-                            onClick={() => handleMarkAsDelivered(ord.order_id)}
-                            disabled={actionLoading === ord.order_id}
                             style={{
+                              width: 'auto',
+                              marginTop: 0,
                               backgroundColor: '#10b981',
-                              color: '#fff',
-                              padding: '0.6rem 1.2rem',
-                              borderRadius: 'var(--radius-md)',
-                              fontWeight: 700,
+                              padding: '0.45rem 1rem',
+                              fontSize: '0.85rem',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '0.5rem'
+                              gap: '0.35rem'
                             }}
                           >
-                            <CheckCircle size={16} /> {actionLoading === ord.order_id ? 'Updating...' : 'Mark as Delivered (Employee Only)'}
+                            <Check size={16} /> Accept Request
                           </button>
-                        }
-                      />
+                          <button
+                            onClick={() => {
+                              setRejectingReturnId(ret.return_id);
+                              setRejectionReason('');
+                            }}
+                            disabled={actionLoading === ret.return_id}
+                            className="btn-secondary-outline"
+                            style={{
+                              borderColor: '#ef4444',
+                              color: '#ef4444',
+                              padding: '0.45rem 1rem',
+                              fontSize: '0.85rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            <X size={16} /> Reject Request
+                          </button>
+                        </>
+                      )}
+
+                      {isShipped && (
+                        <button
+                          onClick={() => handleMarkReturnInTransit(ret.return_id)}
+                          disabled={actionLoading === ret.return_id}
+                          className="btn-primary-block"
+                          style={{
+                            width: 'auto',
+                            marginTop: 0,
+                            backgroundColor: '#3b82f6',
+                            padding: '0.45rem 1rem',
+                            fontSize: '0.85rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <Truck size={16} /> Mark In Transit
+                        </button>
+                      )}
+
+                      {isReceived && (
+                        <button
+                          onClick={() => handleCompleteReturn(ret.return_id)}
+                          disabled={actionLoading === ret.return_id}
+                          className="btn-primary-block"
+                          style={{
+                            width: 'auto',
+                            marginTop: 0,
+                            backgroundColor: '#10b981',
+                            padding: '0.45rem 1rem',
+                            fontSize: '0.85rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <CheckCircle size={16} /> Finalize Return & Refund
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Customer Details & Comments */}
+                  {ret.comments && (
+                    <div style={{ backgroundColor: 'var(--bg-input)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                      <strong>Customer Comments:</strong> {ret.comments}
+                    </div>
+                  )}
+
+                  {ret.image_url && (
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>Attached Photo Evidence:</span>
+                      <a href={ret.image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', textDecoration: 'underline' }}>
+                        View Uploaded Image ↗
+                      </a>
+                    </div>
+                  )}
+
+                  {isRejected && ret.rejection_reason && (
+                    <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                      <strong>Rejection Reason:</strong> {ret.rejection_reason}
+                    </div>
+                  )}
+
+                  {/* Items in Return */}
+                  <div style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.75rem', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>Returned Products:</span>
+                    {ret.items?.map((it, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', borderBottom: idx < ret.items.length - 1 ? '1px dashed var(--border-color)' : 'none', padding: '0.3rem 0' }}>
+                        <span><strong>{it.product_name}</strong> (Qty: {it.quantity})</span>
+                        <span>Unit: ${parseFloat(it.unit_price).toFixed(2)} • Subtotal: ${(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
+                      </div>
                     ))}
                   </div>
-                )}
-              </div>
-            )}
 
-            {/* TAB 5: DELIVERED ORDERS */}
-            {activeTab === 'delivered' && (
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-                  Delivered & Completed Orders History
-                </h3>
-
-                {deliveredOrders.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                    <Package size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-                    <p>No delivered orders recorded yet.</p>
+                  {/* Live Visual Tracker for Return */}
+                  <VisualTracker
+                    type="return"
+                    status={ret.return_status}
+                    history={ret.status_history || []}
+                    courierName={ret.courier_name}
+                    trackingNumber={ret.tracking_number}
+                    returnId={ret.return_id}
+                    orderNumber={ret.order_number}
+                    rejectionReason={ret.rejection_reason}
+                  />
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : activeTab === 'feedback' ? (
+        /* Feedback Moderation Section */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {reviews.length === 0 ? (
+            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '3.5rem 1rem', textAlign: 'center' }}>
+              <MessageSquare size={40} style={{ opacity: 0.4, marginBottom: '0.75rem', color: '#10b981' }} />
+              <h3>No Customer Reviews</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>No reviews have been submitted by customers yet.</p>
+            </div>
+          ) : (
+            reviews.map(r => (
+              <div
+                key={r.review_id}
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '1.25rem 1.5rem',
+                  boxShadow: 'var(--shadow-card)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <strong style={{ fontSize: '0.98rem', color: 'var(--text-primary)' }}>{r.customer_name}</strong>
+                      <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Verified Purchase</span>
+                      {r.is_flagged && <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Flagged</span>}
+                      {r.is_hidden && <span className="badge badge-danger" style={{ fontSize: '0.7rem' }}>Hidden from Catalog</span>}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      Product: <strong>{r.product_name}</strong> • Date: {r.review_date}
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {deliveredOrders.map(ord => (
-                      <OrderCard
-                        key={ord.order_id}
-                        ord={ord}
-                        expanded={expandedOrder === ord.order_id}
-                        onToggle={() => toggleExpand(ord.order_id)}
-                        onViewInvoice={() => setSelectedInvoiceOrder(ord)}
-                        actionBadge={
-                          <span className="badge badge-success" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', backgroundColor: '#10b981', color: '#fff' }}>
-                            DELIVERED
-                          </span>
-                        }
-                      />
+
+                  {/* Moderation Controls */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {!r.is_hidden ? (
+                      <button
+                        onClick={() => {
+                          setActiveModerationReview(r);
+                          setModerationAction('hide');
+                          setModerationReason('');
+                        }}
+                        className="btn-secondary-outline"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', borderColor: '#ef4444', color: '#ef4444' }}
+                        title="Hide from public catalog"
+                      >
+                        <EyeOff size={14} /> Hide Review
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleUnhideReview(r.review_id)}
+                        className="btn-secondary-outline"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', borderColor: '#10b981', color: '#10b981' }}
+                        title="Restore to public catalog"
+                      >
+                        <Eye size={14} /> Restore Review
+                      </button>
+                    )}
+
+                    {!r.is_flagged && (
+                      <button
+                        onClick={() => {
+                          setActiveModerationReview(r);
+                          setModerationAction('flag');
+                          setModerationReason('');
+                        }}
+                        className="btn-secondary-outline"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', borderColor: '#f59e0b', color: '#f59e0b' }}
+                        title="Flag for review"
+                      >
+                        <Flag size={14} /> Flag
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0' }}>
+                  <div style={{ display: 'flex', color: '#f59e0b' }}>
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <span key={s} style={{ fontSize: '1.1rem' }}>{s <= r.rating ? '★' : '☆'}</span>
                     ))}
                   </div>
-                )}
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{r.rating} / 5</span>
+                </div>
+
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                  "{r.description}"
+                </p>
               </div>
-            )}
-          </>
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      ) : (
+        /* Orders Workflow Lists */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {activeTab === 'requests' && (
+            pendingRequests.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No pending order requests.</p>
+            ) : (
+              pendingRequests.map(ord => (
+                <OrderCard
+                  key={ord.order_id}
+                  ord={ord}
+                  expanded={expandedOrder === ord.order_id}
+                  onToggle={() => toggleExpand(ord.order_id)}
+                  onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  actionButton={
+                    <button
+                      onClick={() => handleForwardToSeller(ord.order_id)}
+                      disabled={actionLoading === ord.order_id}
+                      className="btn-primary-block"
+                      style={{ width: 'auto', marginTop: 0, padding: '0.45rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#0284c7' }}
+                    >
+                      <Send size={15} /> Forward to Seller
+                    </button>
+                  }
+                />
+              ))
+            )
+          )}
+
+          {activeTab === 'sent' && (
+            sentToSellerOrders.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No orders currently awaiting seller confirmation.</p>
+            ) : (
+              sentToSellerOrders.map(ord => (
+                <OrderCard
+                  key={ord.order_id}
+                  ord={ord}
+                  expanded={expandedOrder === ord.order_id}
+                  onToggle={() => toggleExpand(ord.order_id)}
+                  onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  actionBadge={<span className="badge badge-cyan" style={{ backgroundColor: '#0284c7', color: '#fff' }}>Awaiting Seller Confirmation</span>}
+                />
+              ))
+            )
+          )}
+
+          {activeTab === 'confirmed' && (
+            confirmedOrders.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No seller-confirmed orders awaiting packing.</p>
+            ) : (
+              confirmedOrders.map(ord => (
+                <OrderCard
+                  key={ord.order_id}
+                  ord={ord}
+                  expanded={expandedOrder === ord.order_id}
+                  onToggle={() => toggleExpand(ord.order_id)}
+                  onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  actionBadge={<span className="badge badge-success" style={{ backgroundColor: 'var(--accent-purple)', color: '#fff' }}>Confirmed by Seller</span>}
+                />
+              ))
+            )
+          )}
+
+          {activeTab === 'shipped' && (
+            shippedOrders.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No orders currently in transit.</p>
+            ) : (
+              shippedOrders.map(ord => (
+                <OrderCard
+                  key={ord.order_id}
+                  ord={ord}
+                  expanded={expandedOrder === ord.order_id}
+                  onToggle={() => toggleExpand(ord.order_id)}
+                  onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  actionButton={
+                    <button
+                      onClick={() => handleMarkAsDelivered(ord.order_id)}
+                      disabled={actionLoading === ord.order_id}
+                      className="btn-primary-block"
+                      style={{ width: 'auto', marginTop: 0, padding: '0.45rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#10b981' }}
+                    >
+                      <CheckCircle size={15} /> Confirm Delivered
+                    </button>
+                  }
+                />
+              ))
+            )
+          )}
+
+          {activeTab === 'delivered' && (
+            deliveredOrders.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No delivered orders recorded yet.</p>
+            ) : (
+              deliveredOrders.map(ord => (
+                <OrderCard
+                  key={ord.order_id}
+                  ord={ord}
+                  expanded={expandedOrder === ord.order_id}
+                  onToggle={() => toggleExpand(ord.order_id)}
+                  onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  actionBadge={<span className="badge badge-success" style={{ backgroundColor: '#10b981', color: '#fff' }}>Delivered to Customer</span>}
+                />
+              ))
+            )
+          )}
+        </div>
+      )}
+
+      {/* Rejection Modal */}
+      {rejectingReturnId && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '480px', padding: '1.75rem' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.75rem', color: '#ef4444' }}>Reject Return Request</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              Please provide the official reason for rejecting return request <strong>{rejectingReturnId}</strong>:
+            </p>
+            <form onSubmit={handleConfirmRejectReturn}>
+              <textarea
+                className="form-input"
+                rows="4"
+                placeholder="e.g. Return window expired, physical tampering observed, or policy violation..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                required
+              ></textarea>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setRejectingReturnId(null)} className="btn-secondary-outline" style={{ width: 'auto' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-block" style={{ width: 'auto', marginTop: 0, backgroundColor: '#ef4444' }}>
+                  Confirm Rejection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Moderation Modal */}
+      {activeModerationReview && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '480px', padding: '1.75rem' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+              {moderationAction === 'hide' ? 'Hide Inappropriate Review' : 'Flag Review for Investigation'}
+            </h3>
+            <form onSubmit={handleExecuteModeration}>
+              <div className="form-group">
+                <label className="form-label">Moderation Note / Reason</label>
+                <textarea
+                  className="form-input"
+                  rows="3"
+                  placeholder="Enter reason for this action..."
+                  value={moderationReason}
+                  onChange={(e) => setModerationReason(e.target.value)}
+                  required
+                ></textarea>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setActiveModerationReview(null)} className="btn-secondary-outline" style={{ width: 'auto' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-block" style={{ width: 'auto', marginTop: 0 }}>
+                  Confirm Action
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Invoice Modal */}
       {selectedInvoiceOrder && (
@@ -454,137 +900,62 @@ export default function EmployeeDashboard() {
   );
 }
 
-function OrderCard({ ord, expanded, onToggle, onViewInvoice, actionButton, actionBadge }) {
+// Sub-component for Order Cards
+function OrderCard({ ord, expanded, onToggle, onInvoice, actionButton, actionBadge }) {
   return (
-    <div style={{
-      backgroundColor: 'var(--bg-input)',
-      border: '1px solid var(--border-color)',
-      borderRadius: 'var(--radius-md)',
-      padding: '1.25rem',
-      transition: 'border-color 0.2s ease'
-    }}>
+    <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1.25rem 1.5rem', boxShadow: 'var(--shadow-card)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
             <strong style={{ fontSize: '1.1rem', color: 'var(--accent-purple)' }}>{ord.order_number}</strong>
-            <span className="badge badge-mysql">
-              {ord.order_status === 'ORDER_PLACED' ? 'Order Placed' :
-               ord.order_status === 'SENT_TO_SELLER' ? 'Forwarded to Seller' :
-               ord.order_status === 'ORDER_CONFIRMED' ? 'Confirmed by Seller' :
-               ord.order_status === 'SHIPPED' ? 'Order Shipped' :
-               ord.order_status === 'DELIVERED' ? 'Delivered' : ord.order_status}
-            </span>
+            <span className="badge badge-success">{ord.order_status}</span>
           </div>
-
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span>Customer: <strong>{ord.customer_name} ({ord.customer_email})</strong></span>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <span>Customer: <strong>{ord.customer_name}</strong></span>
             <span>Date: <strong>{ord.order_date}</strong></span>
-            <span>Total Price: <strong style={{ color: 'var(--text-primary)' }}>${parseFloat(ord.order_amount).toFixed(2)}</strong></span>
-            {ord.approx_delivery_date && (
-              <span style={{ color: 'var(--accent-green)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                <Calendar size={14} /> Approx Delivery: {ord.approx_delivery_date}
-              </span>
-            )}
+            <span>Total: <strong style={{ color: 'var(--text-primary)' }}>${parseFloat(ord.order_amount).toFixed(2)}</strong></span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button
-            onClick={onViewInvoice}
-            className="btn-primary-block"
-            style={{
-              width: 'auto',
-              marginTop: 0,
-              padding: '0.45rem 0.85rem',
-              fontSize: '0.8rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              backgroundColor: 'var(--accent-purple)'
-            }}
-          >
-            <FileText size={15} /> Invoice
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button onClick={onInvoice} className="btn-secondary-outline" style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <FileText size={14} /> Invoice
           </button>
-
           {actionButton}
           {actionBadge}
-
           <button onClick={onToggle} className="btn-secondary-outline" style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}>
-            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            {expanded ? 'Hide Details' : 'View Details'}
+            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />} {expanded ? 'Hide' : 'Details'}
           </button>
         </div>
       </div>
 
-      {/* Expanded Order & Products Details */}
+      {/* Order visual tracker */}
+      <div style={{ marginTop: '0.75rem' }}>
+        <VisualTracker
+          type="order"
+          status={ord.order_status}
+          history={ord.history || []}
+          courierName={ord.courier_name}
+          trackingNumber={ord.tracking_number}
+          orderNumber={ord.order_number}
+          approxDeliveryDate={ord.approx_delivery_date}
+        />
+      </div>
+
       {expanded && (
-        <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-color)' }} className="animate-fade-in">
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem' }}>Ordered Products & Quantities</h4>
-
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem', marginBottom: '1rem' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-                  <th style={{ padding: '0.5rem' }}>Product Name</th>
-                  <th style={{ padding: '0.5rem' }}>Brand</th>
-                  <th style={{ padding: '0.5rem' }}>Unit Price ($)</th>
-                  <th style={{ padding: '0.5rem' }}>Quantity</th>
-                  <th style={{ padding: '0.5rem' }}>Subtotal ($)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ord.items?.map((item, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '0.5rem', fontWeight: 600 }}>{item.product_name}</td>
-                    <td style={{ padding: '0.5rem', color: 'var(--text-secondary)' }}>{item.brand}</td>
-                    <td style={{ padding: '0.5rem' }}>${parseFloat(item.unit_price).toFixed(2)}</td>
-                    <td style={{ padding: '0.5rem' }}>{item.quantity}</td>
-                    <td style={{ padding: '0.5rem', fontWeight: 700 }}>${(parseFloat(item.unit_price) * parseInt(item.quantity)).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem', marginBottom: '1rem' }}>
-            {/* Shipping Address */}
-            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem' }}>
-              <strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Shipping Information:</strong>
-              <p style={{ color: 'var(--text-secondary)' }}>
-                {ord.address ? `${ord.address.street}, ${ord.address.apartment_no ? ord.address.apartment_no + ', ' : ''}${ord.address.city}, ${ord.address.state} - ${ord.address.pincode}` : 'Standard Address'}
-              </p>
-            </div>
-
-            {/* Payment Details */}
-            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem' }}>
-              <strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Payment Status & Delivery Info:</strong>
-              <p style={{ color: 'var(--text-secondary)' }}>
-                Method: <strong>{ord.payment?.payment_mode || 'Credit/Debit Card'}</strong> • Status: <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>{ord.payment?.payment_status || 'Completed'}</span>
-              </p>
-              {ord.approx_delivery_date && (
-                <div style={{ marginTop: '0.4rem', color: 'var(--accent-green)', fontWeight: 600 }}>
-                  Approximate Delivery Date: <strong>{ord.approx_delivery_date}</strong>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Audit History Timeline */}
-          {ord.history && ord.history.length > 0 && (
-            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem' }}>
-              <strong style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-cyan)', marginBottom: '0.5rem' }}>
-                <History size={16} /> Order Audit Trail & Activity Log
-              </strong>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.8rem' }}>
-                {ord.history.map((h, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.25rem' }}>
-                    <span><strong>{h.action}</strong> ({h.performed_by})</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{h.timestamp}</span>
-                  </div>
-                ))}
+        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.5rem' }}>Items in this order:</h5>
+          <div style={{ backgroundColor: 'var(--bg-input)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '0.75rem' }}>
+            {ord.items?.map((it, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                <span>{it.product_name} (Qty: {it.quantity})</span>
+                <span>${(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+            <strong>Shipping To:</strong> {ord.address ? `${ord.address.street}, ${ord.address.city}, ${ord.address.state}` : 'Standard Shipping'}
+          </div>
         </div>
       )}
     </div>

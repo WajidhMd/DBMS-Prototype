@@ -14,7 +14,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    const targetDb = localStorage.getItem('targetDb') || 'mysql';
+    const targetDb = localStorage.getItem('targetDb') || 'postgresql';
     config.headers['x-database-type'] = targetDb;
 
     return config;

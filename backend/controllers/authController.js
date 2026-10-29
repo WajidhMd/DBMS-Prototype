@@ -241,7 +241,7 @@ export async function getMe(req, res) {
 
 export function getSampleAccounts(req, res) {
   return res.json({
-    message: 'Sample demo credentials available across all databases (MySQL, PostgreSQL, MongoDB)',
+    message: 'Sample demo credentials available across all databases (PostgreSQL, MongoDB)',
     password: 'password123',
     accounts: [
       {

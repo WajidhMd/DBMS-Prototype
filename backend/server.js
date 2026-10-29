@@ -10,6 +10,8 @@ import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import returnRoutes from './routes/returnRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { getAllCustomers, getAllSellers } from './services/dbAdapter.js';
 
@@ -31,6 +33,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/returns', returnRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
