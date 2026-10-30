@@ -2,12 +2,24 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
-import { Database, User, Mail, Phone, Calendar, Lock, UserCheck, ArrowLeft, CheckCircle } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Lock,
+  UserCheck,
+  ArrowLeft,
+  CheckCircle,
+  Database,
+  Layers,
+  Check
+} from 'lucide-react';
 import './Login.css';
 
 export default function Register() {
   const { register } = useAuth();
-  const { targetDb } = useDb();
+  const { targetDb, setTargetDb } = useDb();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -37,7 +49,14 @@ export default function Register() {
     setSuccessMsg('');
 
     // Field Validations
-    if (!formData.first_name || !formData.last_name || !formData.email || !formData.phone || !formData.date_of_birth || !formData.password) {
+    if (
+      !formData.first_name ||
+      !formData.last_name ||
+      !formData.email ||
+      !formData.phone ||
+      !formData.date_of_birth ||
+      !formData.password
+    ) {
       setError('Please fill in all mandatory fields.');
       return;
     }
@@ -54,7 +73,7 @@ export default function Register() {
 
     try {
       setLoading(true);
-      const res = await register(formData, targetDb);
+      await register(formData, targetDb);
       setSuccessMsg(`Registration successful in ${targetDb.toUpperCase()} database! Redirecting to login...`);
 
       setTimeout(() => {
@@ -68,189 +87,278 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-wrapper">
-      <div className="auth-card" style={{ maxWidth: '620px' }}>
-        <div style={{ marginBottom: '1.25rem' }}>
-          <Link to="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            <ArrowLeft size={16} /> Back to Login
-          </Link>
-        </div>
+    <div className="jmart-auth-page">
+      <div className="jmart-auth-window" style={{ maxWidth: '680px', gridTemplateColumns: '1fr' }}>
+        <div className="auth-form-panel" style={{ padding: '2.5rem' }}>
+          <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Link
+              to="/login"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.85rem',
+                color: '#9ca3af',
+                textDecoration: 'none'
+              }}
+            >
+              <ArrowLeft size={16} /> Back to Sign In
+            </Link>
 
-        <div className="auth-header" style={{ marginBottom: '1.5rem' }}>
-          <div className="auth-logo-badge">
-            <UserCheck size={30} />
-          </div>
-          <h1 className="auth-title">Create New Account</h1>
-          <p className="auth-subtitle">Target Database: <strong style={{ color: 'var(--accent-purple)', textTransform: 'uppercase' }}>{targetDb}</strong></p>
-        </div>
-
-        {error && <div className="error-banner">{error}</div>}
-        {successMsg && (
-          <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', padding: '0.85rem', borderRadius: 'var(--radius-md)', fontSize: '0.88rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CheckCircle size={18} /> {successMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          {/* Account Type Selection */}
-          <div className="form-group" style={{ backgroundColor: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
-            <label className="form-label" style={{ marginBottom: '0.5rem' }}>Account Role Type</label>
-            <div style={{ display: 'flex', gap: '2rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                <input
-                  type="radio"
-                  name="account_type"
-                  value="Customer"
-                  checked={formData.account_type === 'Customer'}
-                  onChange={handleChange}
-                />
-                <strong>Customer</strong> (Default)
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                <input
-                  type="radio"
-                  name="account_type"
-                  value="Seller"
-                  checked={formData.account_type === 'Seller'}
-                  onChange={handleChange}
-                />
-                <strong>Seller / Vendor</strong>
-              </label>
+            {/* Target DB Switcher */}
+            <div style={{ display: 'flex', gap: '0.35rem', background: '#1f2736', padding: '3px', borderRadius: '9999px' }}>
+              <button
+                type="button"
+                onClick={() => setTargetDb('postgresql')}
+                style={{
+                  background: targetDb === 'postgresql' ? '#2563eb' : 'transparent',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.2rem 0.65rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                PostgreSQL
+              </button>
+              <button
+                type="button"
+                onClick={() => setTargetDb('mongodb')}
+                style={{
+                  background: targetDb === 'mongodb' ? '#059669' : 'transparent',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.2rem 0.65rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                MongoDB
+              </button>
             </div>
           </div>
 
-          {formData.account_type === 'Seller' && (
-            <div className="form-group">
-              <label className="form-label">Store / Company Name *</label>
-              <input
-                type="text"
-                name="seller_name"
-                className="form-input"
-                placeholder="e.g. Apex Electronics Ltd"
-                value={formData.seller_name}
-                onChange={handleChange}
-                required
-              />
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+            <div className="auth-logo-wrap" style={{ margin: '0 auto 0.75rem auto' }}>
+              <div className="logo-main" style={{ justifyContent: 'center' }}>
+                <span className="logo-text">jmart</span>
+                <span className="logo-domain">.in</span>
+              </div>
+              <svg className="jmart-smile-curve" viewBox="0 0 100 24" width="85" height="18" style={{ margin: '0 auto' }}>
+                <path d="M 6 6 Q 50 25 90 7" fill="transparent" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" />
+                <path d="M 84 4 L 92 7 L 85 13 Z" fill="var(--color-primary)" stroke="var(--color-primary)" strokeWidth="1" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2 className="auth-welcome-title" style={{ fontSize: '1.45rem' }}>Create JMART Account</h2>
+            <p className="auth-welcome-subtitle" style={{ fontSize: '0.82rem' }}>
+              Target Database: <strong style={{ color: 'var(--color-primary)' }}>{targetDb.toUpperCase()}</strong>
+            </p>
+          </div>
+
+          {error && <div className="auth-error-banner">{error}</div>}
+          {successMsg && (
+            <div
+              style={{
+                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                color: '#34d399',
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <CheckCircle size={18} /> {successMsg}
             </div>
           )}
 
-          {/* Name Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
-            <div className="form-group">
-              <label className="form-label">First Name *</label>
+          <form onSubmit={handleSubmit} className="auth-input-form">
+            {/* Account Role Type */}
+            <div
+              style={{
+                backgroundColor: '#1f2736',
+                padding: '0.85rem 1rem',
+                borderRadius: '10px',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}
+            >
+              <label className="field-label" style={{ marginBottom: '0.4rem', display: 'block' }}>
+                Account Role Type
+              </label>
+              <div style={{ display: 'flex', gap: '2rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.88rem', color: '#e2e8f0' }}>
+                  <input
+                    type="radio"
+                    name="account_type"
+                    value="Customer"
+                    checked={formData.account_type === 'Customer'}
+                    onChange={handleChange}
+                  />
+                  <span>Customer (Buyer)</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.88rem', color: '#e2e8f0' }}>
+                  <input
+                    type="radio"
+                    name="account_type"
+                    value="Seller"
+                    checked={formData.account_type === 'Seller'}
+                    onChange={handleChange}
+                  />
+                  <span>Seller (Vendor)</span>
+                </label>
+              </div>
+            </div>
+
+            {formData.account_type === 'Seller' && (
+              <div className="form-field-group">
+                <label className="field-label">Store / Company Name *</label>
+                <input
+                  type="text"
+                  name="seller_name"
+                  className="auth-text-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="e.g. Apex Electronics Ltd"
+                  value={formData.seller_name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            )}
+
+            {/* Name Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+              <div className="form-field-group">
+                <label className="field-label">First Name *</label>
+                <input
+                  type="text"
+                  name="first_name"
+                  className="auth-text-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="John"
+                  value={formData.first_name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-field-group">
+                <label className="field-label">Middle Name</label>
+                <input
+                  type="text"
+                  name="middle_name"
+                  className="auth-text-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="Robert"
+                  value={formData.middle_name}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="form-field-group">
+                <label className="field-label">Last Name *</label>
+                <input
+                  type="text"
+                  name="last_name"
+                  className="auth-text-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="Doe"
+                  value={formData.last_name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Email & Phone */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="form-field-group">
+                <label className="field-label">Email Address *</label>
+                <input
+                  type="email"
+                  name="email"
+                  className="auth-text-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="john@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-field-group">
+                <label className="field-label">Phone Number *</label>
+                <input
+                  type="text"
+                  name="phone"
+                  className="auth-text-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="+1-555-0192"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* DOB */}
+            <div className="form-field-group">
+              <label className="field-label">Date of Birth *</label>
               <input
-                type="text"
-                name="first_name"
-                className="form-input"
-                placeholder="John"
-                value={formData.first_name}
+                type="date"
+                name="date_of_birth"
+                className="auth-text-input"
+                style={{ paddingLeft: '1rem' }}
+                value={formData.date_of_birth}
                 onChange={handleChange}
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Middle Name</label>
-              <input
-                type="text"
-                name="middle_name"
-                className="form-input"
-                placeholder="Robert"
-                value={formData.middle_name}
-                onChange={handleChange}
-              />
+            {/* Password */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="form-field-group">
+                <label className="field-label">Password *</label>
+                <input
+                  type="password"
+                  name="password"
+                  className="auth-text-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="Min 6 characters"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-field-group">
+                <label className="field-label">Confirm Password *</label>
+                <input
+                  type="password"
+                  name="confirm_password"
+                  className="auth-text-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="Repeat password"
+                  value={formData.confirm_password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Last Name *</label>
-              <input
-                type="text"
-                name="last_name"
-                className="form-input"
-                placeholder="Doe"
-                value={formData.last_name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          {/* Contact Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div className="form-group">
-              <label className="form-label">Email Address *</label>
-              <input
-                type="email"
-                name="email"
-                className="form-input"
-                placeholder="john.doe@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Phone Number *</label>
-              <input
-                type="text"
-                name="phone"
-                className="form-input"
-                placeholder="+1-555-0192"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          {/* DOB Row */}
-          <div className="form-group">
-            <label className="form-label">Date of Birth *</label>
-            <input
-              type="date"
-              name="date_of_birth"
-              className="form-input"
-              value={formData.date_of_birth}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {/* Password Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div className="form-group">
-              <label className="form-label">Password *</label>
-              <input
-                type="password"
-                name="password"
-                className="form-input"
-                placeholder="Min 6 characters"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Confirm Password *</label>
-              <input
-                type="password"
-                name="confirm_password"
-                className="form-input"
-                placeholder="Repeat password"
-                value={formData.confirm_password}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          <button type="submit" className="btn-primary-block" disabled={loading} style={{ marginTop: '1rem' }}>
-            {loading ? 'Processing Registration...' : 'Register & Create Account'}
-          </button>
-        </form>
+            <button type="submit" className="btn-jmart-submit" disabled={loading} style={{ marginTop: '0.75rem' }}>
+              {loading ? 'Creating Account...' : 'Register & Join JMART'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

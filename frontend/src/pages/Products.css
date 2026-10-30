@@ -1,0 +1,722 @@
+/* Products Page - Luxury Gold & Obsidian Palette */
+.jmart-products-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-bottom: 2rem;
+}
+
+/* 1. Hero Promotional Banner */
+.jmart-hero-banner {
+  position: relative;
+  background: linear-gradient(135deg, #171717 0%, #242424 55%, #1F1F1F 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 2.25rem 2.5rem;
+  overflow: hidden;
+  color: #FFFFFF;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 180px;
+  transition: all var(--transition-fast);
+}
+
+[data-theme="dark"] .jmart-hero-banner {
+  background: linear-gradient(135deg, #1A1A1A 0%, #242424 60%, #161616 100%);
+  border-color: rgba(198, 161, 91, 0.3);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 520px;
+}
+
+.hero-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+  color: var(--color-primary);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.hero-subtitle {
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: #D4D4D4;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+.hero-action-btn {
+  background: var(--color-primary);
+  color: var(--color-text-on-brand);
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.65rem 1.65rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.hero-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  background: var(--color-primary-hover);
+}
+
+/* Hero Background Vector Cursor Outlines */
+.hero-vectors-backdrop {
+  position: absolute;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 320px;
+  height: 180px;
+  pointer-events: none;
+}
+
+.cursor-arrow {
+  position: absolute;
+}
+
+.arrow-1 {
+  right: 180px;
+  top: 20px;
+  transform: rotate(-10deg);
+}
+
+.arrow-2 {
+  right: 70px;
+  top: -15px;
+  transform: rotate(-15deg);
+}
+
+.arrow-3 {
+  right: 15px;
+  top: 35px;
+  transform: rotate(-8deg);
+}
+
+.arrow-4 {
+  right: 220px;
+  bottom: 10px;
+  transform: rotate(-25deg);
+}
+
+/* 2. Popular Categories Section */
+.jmart-popular-categories-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-heading {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.popular-categories-tiles-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.popular-categories-tiles-row::-webkit-scrollbar {
+  height: 4px;
+}
+.popular-categories-tiles-row::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.category-tile-btn {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-card);
+}
+
+.category-tile-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+  background: var(--color-gold-soft);
+}
+
+.category-tile-btn.active-tile {
+  border-color: var(--color-primary);
+  background: var(--color-gold-soft);
+  color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+/* 3. Filter Toolbar */
+.jmart-filters-toolbar {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.85rem;
+  align-items: end;
+  box-shadow: var(--shadow-card);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.filter-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filter-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem 0.55rem 2.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  font-size: 0.85rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.filter-input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.filter-select {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  font-size: 0.85rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.filter-select:focus {
+  border-color: var(--color-primary);
+}
+
+.btn-clear-filters {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-button);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+.btn-clear-filters:hover {
+  background: var(--color-gold-soft);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 4. Hot deals Catalog Section */
+.jmart-deals-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.deals-title-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.results-count-badge {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.results-count-badge strong {
+  color: var(--color-primary);
+}
+
+.deals-pagination-arrows {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.arrow-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.arrow-nav-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-gold-soft);
+}
+
+.arrow-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.page-indicator-text {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+/* Products Grid */
+.jmart-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Product Card */
+.jmart-product-card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.jmart-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-primary);
+}
+
+/* Wishlist Heart Toggle */
+.product-wishlist-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  transition: all var(--transition-fast);
+}
+
+.product-wishlist-toggle:hover {
+  color: var(--color-primary);
+  transform: scale(1.1);
+  border-color: var(--color-primary);
+}
+
+.product-wishlist-toggle.favorited {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-gold-soft);
+}
+
+/* Product Image */
+.product-image-container {
+  width: 100%;
+  height: 175px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.product-card-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform var(--transition-fast);
+}
+
+.jmart-product-card:hover .product-card-img {
+  transform: scale(1.04);
+}
+
+.product-img-fallback {
+  width: 100%;
+  height: 100%;
+  background: var(--color-bg);
+  border-radius: var(--radius-button);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+
+/* Product Info */
+.product-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.product-title-link {
+  text-decoration: none;
+}
+
+.product-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.35;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color var(--transition-fast);
+}
+
+.product-title-link:hover .product-card-title {
+  color: var(--color-primary);
+}
+
+.product-brand-line {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* Rating Row */
+.product-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.2rem 0;
+}
+
+.star-rating-stars {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.star-rating-stars svg {
+  color: #C6A15B !important;
+  fill: #C6A15B !important;
+}
+
+.rating-score {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.reviews-count {
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+}
+
+/* Pricing Row */
+.product-pricing-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0.4rem 0 0.85rem;
+}
+
+.price-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.current-price {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+[data-theme="dark"] .current-price {
+  color: var(--color-primary);
+}
+
+.original-strikethrough-price {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.stock-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.stock-badge.in-stock {
+  background: rgba(21, 128, 61, 0.15);
+  color: var(--color-success);
+}
+
+.stock-badge.out-of-stock {
+  background: rgba(220, 38, 38, 0.15);
+  color: var(--color-danger);
+}
+
+/* Action Buttons */
+.product-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.btn-card-add-cart {
+  background: var(--color-primary);
+  color: var(--color-text-on-brand);
+  border: none;
+  border-radius: var(--radius-button);
+  padding: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-card-add-cart:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-card-add-cart:disabled {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+.btn-card-details {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  padding: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-card-details:hover {
+  border-color: var(--color-primary);
+  background: var(--color-gold-soft);
+  color: var(--color-primary);
+}
+
+/* Loading and Empty States */
+.jmart-loading-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 4rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.jmart-empty-catalog {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 4rem 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.empty-icon {
+  margin: 0 auto 0.75rem auto;
+  opacity: 0.35;
+}
+
+.jmart-empty-catalog h3 {
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
+}
+
+/* Bottom Pagination */
+.jmart-pagination-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.btn-page-nav {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-button);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-page-nav:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-gold-soft);
+}
+
+.btn-page-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-numbers-list {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.page-num-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.page-num-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.page-num-btn.active-page {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-on-brand);
+  font-weight: 800;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-vectors-backdrop {
+    display: none;
+  }
+
+  .jmart-hero-banner {
+    padding: 1.75rem 1.5rem;
+  }
+
+  .hero-title {
+    font-size: 1.75rem;
+  }
+}

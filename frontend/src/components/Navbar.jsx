@@ -2,21 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
+import { useTheme } from '../context/ThemeContext';
 import api from '../services/api';
 import {
-  Database,
-  ShoppingBag,
+  Search,
+  Heart,
   ShoppingCart,
   User,
   LogOut,
+  ChevronDown,
+  Layers,
+  Database,
+  ExternalLink,
+  ShieldAlert,
   LayoutDashboard,
   Package,
-  Layers,
-  MapPin,
-  Star,
-  Users,
-  CreditCard,
-  ShieldAlert
+  Sun,
+  Moon
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import './Navbar.css';
@@ -24,15 +26,43 @@ import './Navbar.css';
 export default function Navbar() {
   const { user, role, logout } = useAuth();
   const { targetDb, setTargetDb } = useDb();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (role === 'CUSTOMER') {
       fetchCartCount();
     }
+    fetchCategories();
+    updateWishlistCount();
+
+    // Listen to custom wishlist update events
+    const handleWishlistChange = () => updateWishlistCount();
+    window.addEventListener('storage', handleWishlistChange);
+    window.addEventListener('jmart-wishlist-update', handleWishlistChange);
+
+    return () => {
+      window.removeEventListener('storage', handleWishlistChange);
+      window.removeEventListener('jmart-wishlist-update', handleWishlistChange);
+    };
   }, [role, location.pathname, targetDb]);
+
+  const updateWishlistCount = () => {
+    try {
+      const items = JSON.parse(localStorage.getItem('jmart_wishlist') || '[]');
+      setWishlistCount(items.length);
+    } catch {
+      setWishlistCount(0);
+    }
+  };
 
   const fetchCartCount = async () => {
     try {
@@ -43,166 +73,244 @@ export default function Navbar() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/categories');
+      setCategories(res.data || []);
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (searchCategory) params.set('category_id', searchCategory);
+    navigate(`/products?${params.toString()}`);
+  };
+
   const handleDbChange = (db) => {
-    setTargetDb(db);
-    // Refresh page or trigger re-fetch
-    window.location.reload();
+    if (targetDb !== db) {
+      setTargetDb(db);
+      window.location.reload();
+    }
   };
 
   const handleLogout = () => {
     logout();
+    setUserDropdownOpen(false);
     navigate('/login');
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-inner">
-        <Link to="/" className="navbar-brand">
-          <div className="brand-icon">
-            <Database size={22} />
+    <header className="jmart-top-header">
+      <div className="header-left-group">
+        {/* JMART Brand Logo with Gold Smile */}
+        <Link to="/" className="jmart-logo navbar-logo">
+          <div className="logo-main">
+            <span className="logo-text">jmart</span>
+            <span className="logo-domain">.in</span>
           </div>
-          <div className="brand-text">
-            <h1>E-Commerce DBMS</h1>
-            <span>Database Management Portal</span>
-          </div>
+          <svg className="jmart-smile-curve" viewBox="0 0 100 24" width="76" height="15">
+            <path d="M 6 6 Q 50 25 90 7" fill="transparent" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" />
+            <path d="M 84 4 L 92 7 L 85 13 Z" fill="var(--color-primary)" stroke="var(--color-primary)" strokeWidth="1" strokeLinejoin="round" />
+          </svg>
         </Link>
 
-        {/* Database Selector Pills (PostgreSQL & MongoDB only) */}
-        <div className="db-pill-selector" title="Active Target Database">
+        {/* Global Search Bar */}
+        <form onSubmit={handleSearchSubmit} className="jmart-search-bar">
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+
+          <div className="search-category-select-wrapper">
+            <select
+              className="search-category-select"
+              value={searchCategory}
+              onChange={(e) => setSearchCategory(e.target.value)}
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.category_id} value={c.category_id}>
+                  {c.category_name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="select-arrow" />
+          </div>
+
+          <button type="submit" className="search-submit-btn" title="Search">
+            <Search size={16} />
+          </button>
+        </form>
+      </div>
+
+      <div className="header-right-group">
+        {/* Target Database Pills */}
+        <div className="header-db-selector" title="Active Target Database">
           <button
-            className={`db-pill-btn ${targetDb === 'postgresql' ? 'active-postgresql' : ''}`}
+            type="button"
+            className={`header-db-pill ${targetDb === 'postgresql' ? 'active-pg' : ''}`}
             onClick={() => handleDbChange('postgresql')}
           >
             PostgreSQL
           </button>
           <button
-            className={`db-pill-btn ${targetDb === 'mongodb' ? 'active-mongodb' : ''}`}
+            type="button"
+            className={`header-db-pill ${targetDb === 'mongodb' ? 'active-mongo' : ''}`}
             onClick={() => handleDbChange('mongodb')}
           >
             MongoDB
           </button>
         </div>
 
-        {/* Navigation Links based on user role */}
-        <ul className="navbar-links">
-          {!user ? (
-            <>
-              <li>
-                <Link to="/products" className={`nav-item ${location.pathname === '/products' ? 'active' : ''}`}>
-                  <ShoppingBag size={16} /> Products
-                </Link>
-              </li>
-              <li>
-                <Link to="/login" className="nav-item">
-                  <User size={16} /> Login
-                </Link>
-              </li>
-              <li>
-                <Link to="/register" className="nav-item" style={{ background: 'var(--accent-purple)', color: '#fff' }}>
-                  Register
-                </Link>
-              </li>
-            </>
+        {/* Dark / Light Mode Switcher Toggle */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="header-icon-btn theme-toggle-btn"
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label="Toggle dark/light theme"
+        >
+          {theme === 'dark' ? (
+            <Sun size={19} className="theme-icon-sun" />
           ) : (
-            <>
-              {role === 'CUSTOMER' && (
-                <>
-                  <li>
-                    <Link to="/customer/dashboard" className={`nav-item ${location.pathname.includes('/customer/dashboard') ? 'active' : ''}`}>
-                      <LayoutDashboard size={16} /> Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/products" className={`nav-item ${location.pathname === '/products' ? 'active' : ''}`}>
-                      <ShoppingBag size={16} /> Products
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/cart" className={`nav-item ${location.pathname === '/cart' ? 'active' : ''}`}>
-                      <ShoppingCart size={16} /> Cart
-                      {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/orders" className={`nav-item ${location.pathname === '/orders' ? 'active' : ''}`}>
-                      <Package size={16} /> My Orders
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/addresses" className={`nav-item ${location.pathname === '/addresses' ? 'active' : ''}`}>
-                      <MapPin size={16} /> Addresses
-                    </Link>
-                  </li>
-                </>
-              )}
-
-              {role === 'EMPLOYEE' && (
-                <>
-                  <li>
-                    <Link to="/employee/dashboard" className={`nav-item ${location.pathname.includes('/employee/dashboard') ? 'active' : ''}`}>
-                      <LayoutDashboard size={16} /> Employee Portal
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/orders" className={`nav-item ${location.pathname === '/orders' ? 'active' : ''}`}>
-                      <Package size={16} /> All Orders
-                    </Link>
-                  </li>
-                </>
-              )}
-
-              {role === 'SELLER' && (
-                <>
-                  <li>
-                    <Link to="/seller/dashboard" className={`nav-item ${location.pathname.includes('/seller/dashboard') ? 'active' : ''}`}>
-                      <LayoutDashboard size={16} /> Seller Portal
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/orders" className={`nav-item ${location.pathname === '/orders' ? 'active' : ''}`}>
-                      <Package size={16} /> Received Orders
-                    </Link>
-                  </li>
-                </>
-              )}
-
-              {role === 'ADMIN' && (
-                <>
-                  <li>
-                    <Link to="/admin/dashboard" className={`nav-item ${location.pathname.includes('/admin/dashboard') ? 'active' : ''}`}>
-                      <ShieldAlert size={16} /> Admin Console
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/products" className={`nav-item ${location.pathname === '/products' ? 'active' : ''}`}>
-                      <ShoppingBag size={16} /> Catalog
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/orders" className={`nav-item ${location.pathname === '/orders' ? 'active' : ''}`}>
-                      <Package size={16} /> All Orders
-                    </Link>
-                  </li>
-                </>
-              )}
-
-              {/* Notifications & User profile & Logout */}
-              <li style={{ display: 'flex', alignItems: 'center' }}>
-                <NotificationBell />
-              </li>
-              <li className="user-menu">
-                <Link to="/profile" className={`nav-item ${location.pathname === '/profile' ? 'active' : ''}`}>
-                  <User size={16} /> {user.email.split('@')[0]}
-                  <span className={`badge badge-${targetDb}`}>{role}</span>
-                </Link>
-                <button onClick={handleLogout} className="btn-logout" title="Logout">
-                  <LogOut size={16} /> Logout
-                </button>
-              </li>
-            </>
+            <Moon size={19} className="theme-icon-moon" />
           )}
-        </ul>
+        </button>
+
+        {/* Wishlist Heart Icon */}
+        <Link
+          to="/products"
+          className="header-icon-btn wishlist-btn"
+          title={`Wishlist (${wishlistCount} items)`}
+        >
+          <Heart size={20} className={wishlistCount > 0 ? 'heart-has-items' : ''} />
+          {wishlistCount > 0 && <span className="wishlist-badge">{wishlistCount}</span>}
+        </Link>
+
+        {/* Cart Button with Badge */}
+        <Link to="/cart" className="header-cart-btn" title="Shopping Cart">
+          <ShoppingCart size={19} className="cart-icon" />
+          {cartCount > 0 && <span className="cart-badge-count">{cartCount}</span>}
+        </Link>
+
+        {/* Notification Bell */}
+        {user && <NotificationBell />}
+
+        {/* User Profile Avatar / Menu */}
+        {user ? (
+          <div className="header-user-dropdown-wrapper">
+            <button
+              className="header-user-avatar-btn"
+              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+            >
+              <div className="user-avatar-circle">
+                {user.email.charAt(0).toUpperCase()}
+              </div>
+              <ChevronDown size={14} className="user-dropdown-arrow" />
+            </button>
+
+            {userDropdownOpen && (
+              <>
+                <div
+                  className="dropdown-backdrop"
+                  onClick={() => setUserDropdownOpen(false)}
+                />
+                <div className="user-dropdown-card">
+                  <div className="dropdown-user-info">
+                    <strong className="user-email-text">{user.email}</strong>
+                    <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>
+                      {role}
+                    </span>
+                  </div>
+
+                  <hr className="dropdown-divider" />
+
+                  <div className="dropdown-links">
+                    <Link
+                      to="/profile"
+                      className="dropdown-item"
+                      onClick={() => setUserDropdownOpen(false)}
+                    >
+                      <User size={15} /> My Profile
+                    </Link>
+
+                    {role === 'CUSTOMER' && (
+                      <>
+                        <Link
+                          to="/customer/dashboard"
+                          className="dropdown-item"
+                          onClick={() => setUserDropdownOpen(false)}
+                        >
+                          <LayoutDashboard size={15} /> Customer Dashboard
+                        </Link>
+                        <Link
+                          to="/orders"
+                          className="dropdown-item"
+                          onClick={() => setUserDropdownOpen(false)}
+                        >
+                          <Package size={15} /> My Orders
+                        </Link>
+                      </>
+                    )}
+
+                    {role === 'SELLER' && (
+                      <Link
+                        to="/seller/dashboard"
+                        className="dropdown-item"
+                        onClick={() => setUserDropdownOpen(false)}
+                      >
+                        <LayoutDashboard size={15} /> Seller Portal
+                      </Link>
+                    )}
+
+                    {role === 'EMPLOYEE' && (
+                      <Link
+                        to="/employee/dashboard"
+                        className="dropdown-item"
+                        onClick={() => setUserDropdownOpen(false)}
+                      >
+                        <LayoutDashboard size={15} /> Employee Portal
+                      </Link>
+                    )}
+
+                    {role === 'ADMIN' && (
+                      <Link
+                        to="/admin/dashboard"
+                        className="dropdown-item"
+                        onClick={() => setUserDropdownOpen(false)}
+                      >
+                        <ShieldAlert size={15} /> Admin Console
+                      </Link>
+                    )}
+                  </div>
+
+                  <hr className="dropdown-divider" />
+
+                  <button onClick={handleLogout} className="dropdown-logout-btn">
+                    <LogOut size={15} /> Logout
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="header-auth-buttons">
+            <Link to="/login" className="btn-header-login">
+              Sign In
+            </Link>
+            <Link to="/register" className="btn-header-register">
+              Register
+            </Link>
+          </div>
+        )}
       </div>
-    </nav>
+    </header>
   );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
 import Navbar from './components/Navbar';
@@ -24,7 +24,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, role, loading } = useAuth();
 
   if (loading) {
-    return <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Authenticating...</div>;
+    return (
+      <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
+        Authenticating session...
+      </div>
+    );
   }
 
   if (!user) {
@@ -46,7 +50,7 @@ const HomeRedirect = () => {
   const { user, role, loading } = useAuth();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/products" replace />;
 
   if (role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
   if (role === 'EMPLOYEE') return <Navigate to="/employee/dashboard" replace />;
@@ -55,41 +59,124 @@ const HomeRedirect = () => {
 };
 
 export default function App() {
+  const location = useLocation();
+
+  // If on login or register page, render dedicated full auth window
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  if (isAuthPage) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
   return (
-    <div className="app-container">
-      <Navbar />
-      <main className="main-content">
-        <Routes>
-          <Route path="/" element={<HomeRedirect />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/products/:id" element={<ProductDetails />} />
+    <div className="jmart-app-frame">
+      <div className="jmart-window">
+        {/* Full-width Main Column with Top Header & Content Surface */}
+        <div className="jmart-main-container">
+          <Navbar />
+          <main className="jmart-content-surface">
+            <Routes>
+              <Route path="/" element={<HomeRedirect />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/products/:id" element={<ProductDetails />} />
 
-          {/* Customer Protected Routes */}
-          <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><CustomerDashboard /></ProtectedRoute>} />
-          <Route path="/cart" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Cart /></ProtectedRoute>} />
-          <Route path="/checkout" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Checkout /></ProtectedRoute>} />
-          <Route path="/addresses" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Addresses /></ProtectedRoute>} />
+              {/* Customer Protected Routes */}
+              <Route
+                path="/customer/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <CustomerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/cart"
+                element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <Cart />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/checkout"
+                element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <Checkout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/addresses"
+                element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <Addresses />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* Employee Protected Routes */}
-          <Route path="/employee/dashboard" element={<ProtectedRoute allowedRoles={['EMPLOYEE']}><EmployeeDashboard /></ProtectedRoute>} />
+              {/* Employee Protected Routes */}
+              <Route
+                path="/employee/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['EMPLOYEE']}>
+                    <EmployeeDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* Seller Protected Routes */}
-          <Route path="/seller/dashboard" element={<ProtectedRoute allowedRoles={['SELLER']}><SellerDashboard /></ProtectedRoute>} />
+              {/* Seller Protected Routes */}
+              <Route
+                path="/seller/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['SELLER']}>
+                    <SellerDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* Admin Protected Routes */}
-          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+              {/* Admin Protected Routes */}
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* General Protected Routes */}
-          <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              {/* General Protected Routes */}
+              <Route
+                path="/orders"
+                element={
+                  <ProtectedRoute>
+                    <Orders />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-      <Footer />
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+
+            {/* Content Footer */}
+            <Footer />
+          </main>
+        </div>
+      </div>
     </div>
   );
 }

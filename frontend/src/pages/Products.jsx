@@ -1,14 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
 import api from '../services/api';
-import { Search, Filter, ShoppingBag, ShoppingCart, Eye, Star, Layers, CheckCircle } from 'lucide-react';
+import {
+  Search,
+  ShoppingCart,
+  Eye,
+  Star,
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+  Laptop,
+  Armchair,
+  Smartphone,
+  Camera,
+  Shirt,
+  Bike,
+  Headphones,
+  Boxes,
+  Gamepad2,
+  Sparkles,
+  Watch,
+  Filter,
+  Check,
+  ShoppingBag
+} from 'lucide-react';
+import './Products.css';
+
+// Popular Category Tiles with custom Lucide Icons matching the screenshot
+const POPULAR_CATEGORIES = [
+  { id: 'laptops', name: 'Laptops', query: 'Laptop', icon: Laptop },
+  { id: 'furniture', name: 'Furniture', query: 'Home', icon: Armchair },
+  { id: 'mobiles', name: 'Mobiles', query: 'Phone', icon: Smartphone },
+  { id: 'cameras', name: 'Cameras', query: 'Camera', icon: Camera },
+  { id: 'fashion', name: 'Fashion', query: 'Fashion', icon: Shirt },
+  { id: 'sports', name: 'Sports', query: 'Sport', icon: Bike },
+  { id: 'audio', name: 'Audio', query: 'Headphones', icon: Headphones },
+  { id: 'toys', name: 'Toys', query: 'Toy', icon: Boxes },
+  { id: 'gaming', name: 'Gaming', query: 'Game', icon: Gamepad2 },
+  { id: 'beauty', name: 'Beauty', query: 'Beauty', icon: Sparkles },
+  { id: 'watches', name: 'Watches', query: 'Watch', icon: Watch }
+];
 
 export default function Products() {
   const { user, role } = useAuth();
   const { targetDb } = useDb();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -21,15 +60,62 @@ export default function Products() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [sortBy, setSortBy] = useState('');
+  const [activePopularTile, setActivePopularTile] = useState(null);
+
+  // Wishlist state
+  const [wishlist, setWishlist] = useState([]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 8;
+
+  const catalogSectionRef = useRef(null);
+
+  // Parse URL search params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const qParam = params.get('q');
+    const catIdParam = params.get('category_id');
+    const catNameParam = params.get('category');
+
+    if (qParam !== null) setSearch(qParam);
+    if (catIdParam !== null) setSelectedCategory(catIdParam);
+    if (catNameParam !== null) {
+      setSearch(catNameParam);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    loadWishlist();
   }, [targetDb]);
+
+  const loadWishlist = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('jmart_wishlist') || '[]');
+      setWishlist(saved);
+    } catch {
+      setWishlist([]);
+    }
+  };
+
+  const toggleWishlist = (product) => {
+    let updated;
+    const exists = wishlist.some((item) => item.product_id === product.product_id);
+    if (exists) {
+      updated = wishlist.filter((item) => item.product_id !== product.product_id);
+    } else {
+      updated = [...wishlist, product];
+    }
+    setWishlist(updated);
+    localStorage.setItem('jmart_wishlist', JSON.stringify(updated));
+    window.dispatchEvent(new Event('jmart-wishlist-update'));
+  };
+
+  const isWishlisted = (productId) => {
+    return wishlist.some((item) => item.product_id === productId);
+  };
 
   const fetchProducts = async () => {
     try {
@@ -64,8 +150,29 @@ export default function Products() {
     try {
       await api.post('/cart', { product_id: product.product_id, quantity: 1 });
       alert(`Added "${product.product_name}" to your cart!`);
+      window.location.reload();
     } catch (err) {
       alert('Failed to add item to cart.');
+    }
+  };
+
+  const handlePopularTileClick = (tile) => {
+    if (activePopularTile === tile.id) {
+      setActivePopularTile(null);
+      setSearch('');
+    } else {
+      setActivePopularTile(tile.id);
+      setSearch(tile.query);
+      setCurrentPage(1);
+    }
+    if (catalogSectionRef.current) {
+      catalogSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const scrollToCatalog = () => {
+    if (catalogSectionRef.current) {
+      catalogSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -74,19 +181,26 @@ export default function Products() {
 
   if (search.trim()) {
     const query = search.toLowerCase();
-    filtered = filtered.filter(p => p.product_name.toLowerCase().includes(query) || p.brand.toLowerCase().includes(query));
+    filtered = filtered.filter(
+      (p) =>
+        p.product_name.toLowerCase().includes(query) ||
+        (p.brand && p.brand.toLowerCase().includes(query)) ||
+        (p.category_name && p.category_name.toLowerCase().includes(query))
+    );
   }
   if (selectedCategory) {
-    filtered = filtered.filter(p => p.category_id === selectedCategory);
+    filtered = filtered.filter((p) => p.category_id === selectedCategory);
   }
   if (selectedBrand) {
-    filtered = filtered.filter(p => p.brand.toLowerCase() === selectedBrand.toLowerCase());
+    filtered = filtered.filter(
+      (p) => p.brand && p.brand.toLowerCase() === selectedBrand.toLowerCase()
+    );
   }
   if (minPrice) {
-    filtered = filtered.filter(p => parseFloat(p.mrp) >= parseFloat(minPrice));
+    filtered = filtered.filter((p) => parseFloat(p.mrp) >= parseFloat(minPrice));
   }
   if (maxPrice) {
-    filtered = filtered.filter(p => parseFloat(p.mrp) <= parseFloat(maxPrice));
+    filtered = filtered.filter((p) => parseFloat(p.mrp) <= parseFloat(maxPrice));
   }
 
   if (sortBy === 'price_asc') {
@@ -97,85 +211,159 @@ export default function Products() {
     filtered.sort((a, b) => a.product_name.localeCompare(b.product_name));
   }
 
-  // Unique Brands list for dropdown
-  const uniqueBrands = Array.from(new Set(products.map(p => p.brand))).filter(Boolean);
-
-  // Pagination calculation
+  const uniqueBrands = Array.from(new Set(products.map((p) => p.brand))).filter(Boolean);
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
-  const paginatedProducts = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedProducts = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Generate consistent fake review count / discount strikethrough for aesthetic fidelity
+  const getProductDisplayMeta = (product) => {
+    const num = parseInt(product.product_id.replace(/\D/g, '') || '12', 10);
+    const rating = (4.5 + (num % 5) * 0.1).toFixed(1);
+    const reviewsCount = (2500 + num * 987).toLocaleString();
+    const originalPrice = (parseFloat(product.mrp) * 1.15).toFixed(2);
+    return { rating, reviewsCount, originalPrice };
+  };
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
-      {/* Title Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-          <span className={`badge badge-${targetDb}`}>{targetDb.toUpperCase()} CATALOG</span>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Showing {filtered.length} products</span>
+    <div className="jmart-products-page animate-fade-in">
+      {/* 1. Hero Promotional Banner */}
+      <section className="jmart-hero-banner">
+        <div className="hero-content">
+          <h1 className="hero-title">Free Delivery!</h1>
+          <p className="hero-subtitle">
+            Don't miss it out! Only today, get free Next Day delivery on all of your orders.
+          </p>
+          <button onClick={scrollToCatalog} className="hero-action-btn">
+            Browse products
+          </button>
         </div>
-        <h1 style={{ fontSize: '1.85rem', fontWeight: 800 }}>Explore Products & Gadgets</h1>
-      </div>
 
-      {/* Filter Toolbar */}
-      <div style={{
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '1.25rem 1.5rem',
-        marginBottom: '2rem',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '1rem',
-        alignItems: 'end'
-      }}>
-        {/* Search */}
-        <div>
-          <label className="form-label" style={{ fontSize: '0.78rem' }}>Search Product / Brand</label>
-          <div className="input-container">
+        {/* Decorative Orange Cursor Vectors matching screenshot */}
+        <div className="hero-vectors-backdrop" aria-hidden="true">
+          <svg className="cursor-arrow arrow-1" viewBox="0 0 40 40" width="70" height="70">
+            <path
+              d="M 6 6 L 16 34 L 21 21 L 34 16 Z"
+              fill="rgba(255, 255, 255, 0.18)"
+              stroke="rgba(255, 255, 255, 0.45)"
+              strokeWidth="2"
+            />
+          </svg>
+          <svg className="cursor-arrow arrow-2" viewBox="0 0 40 40" width="105" height="105">
+            <path
+              d="M 6 6 L 16 34 L 21 21 L 34 16 Z"
+              fill="rgba(255, 255, 255, 0.14)"
+              stroke="rgba(255, 255, 255, 0.45)"
+              strokeWidth="2.5"
+            />
+          </svg>
+          <svg className="cursor-arrow arrow-3" viewBox="0 0 40 40" width="85" height="85">
+            <path
+              d="M 6 6 L 16 34 L 21 21 L 34 16 Z"
+              fill="rgba(255, 255, 255, 0.16)"
+              stroke="rgba(255, 255, 255, 0.45)"
+              strokeWidth="2"
+            />
+          </svg>
+          <svg className="cursor-arrow arrow-4" viewBox="0 0 40 40" width="50" height="50">
+            <path
+              d="M 6 6 L 16 34 L 21 21 L 34 16 Z"
+              fill="rgba(255, 255, 255, 0.12)"
+              stroke="rgba(255, 255, 255, 0.4)"
+              strokeWidth="2"
+            />
+          </svg>
+        </div>
+      </section>
+
+      {/* 2. Popular Categories ⭐ Section */}
+      <section className="jmart-popular-categories-section">
+        <div className="section-header-row">
+          <h2 className="section-heading">Popular categories <span className="star-icon">⭐</span></h2>
+        </div>
+
+        <div className="popular-categories-tiles-row">
+          {POPULAR_CATEGORIES.map((tile) => {
+            const Icon = tile.icon;
+            const isSelected = activePopularTile === tile.id;
+            return (
+              <button
+                key={tile.id}
+                onClick={() => handlePopularTileClick(tile)}
+                className={`category-tile-btn ${isSelected ? 'active-tile' : ''}`}
+                title={tile.name}
+              >
+                <Icon size={22} className="tile-icon" />
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 3. Filter Toolbar */}
+      <div className="jmart-filters-toolbar">
+        <div className="filter-group">
+          <label className="filter-label">Search Keywords</label>
+          <div className="filter-input-wrap">
+            <Search size={14} className="filter-icon" />
             <input
               type="text"
-              className="form-input"
-              placeholder="e.g. Headphones, Laptop..."
+              className="filter-input"
+              placeholder="Search product, brand..."
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setActivePopularTile(null);
+                setCurrentPage(1);
+              }}
             />
           </div>
         </div>
 
-        {/* Category Filter */}
-        <div>
-          <label className="form-label" style={{ fontSize: '0.78rem' }}>Category</label>
+        <div className="filter-group">
+          <label className="filter-label">Category</label>
           <select
-            className="form-input"
+            className="filter-select"
             value={selectedCategory}
-            onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="">All Categories</option>
-            {categories.map(c => (
-              <option key={c.category_id} value={c.category_id}>{c.category_name}</option>
+            {categories.map((c) => (
+              <option key={c.category_id} value={c.category_id}>
+                {c.category_name}
+              </option>
             ))}
           </select>
         </div>
 
-        {/* Brand Filter */}
-        <div>
-          <label className="form-label" style={{ fontSize: '0.78rem' }}>Brand</label>
+        <div className="filter-group">
+          <label className="filter-label">Brand</label>
           <select
-            className="form-input"
+            className="filter-select"
             value={selectedBrand}
-            onChange={(e) => { setSelectedBrand(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => {
+              setSelectedBrand(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="">All Brands</option>
             {uniqueBrands.map((b, i) => (
-              <option key={i} value={b}>{b}</option>
+              <option key={i} value={b}>
+                {b}
+              </option>
             ))}
           </select>
         </div>
 
-        {/* Sort By */}
-        <div>
-          <label className="form-label" style={{ fontSize: '0.78rem' }}>Sort By</label>
+        <div className="filter-group">
+          <label className="filter-label">Sort Order</label>
           <select
-            className="form-input"
+            className="filter-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
@@ -186,8 +374,7 @@ export default function Products() {
           </select>
         </div>
 
-        {/* Reset Filters */}
-        <div>
+        <div className="filter-group filter-actions">
           <button
             onClick={() => {
               setSearch('');
@@ -196,144 +383,192 @@ export default function Products() {
               setMinPrice('');
               setMaxPrice('');
               setSortBy('');
+              setActivePopularTile(null);
               setCurrentPage(1);
             }}
-            className="btn-secondary-outline"
-            style={{ width: '100%', padding: '0.7rem' }}
+            className="btn-clear-filters"
           >
-            Clear Filters
+            Reset
           </button>
         </div>
       </div>
 
-      {/* Products Grid */}
-      {loading ? (
-        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '3rem' }}>Fetching products from {targetDb.toUpperCase()} database...</p>
-      ) : paginatedProducts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '4rem 1rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)' }}>
-          <ShoppingBag size={48} style={{ opacity: 0.4, marginBottom: '1rem' }} />
-          <h3>No matching products found.</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>Try broadening your search or resetting filters.</p>
-        </div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '2.5rem'
-        }}>
-          {paginatedProducts.map(p => (
-            <div
-              key={p.product_id}
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'transform 0.2s ease, border-color 0.2s ease',
-                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-purple)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+      {/* 4. Hot deals 🔥 Catalog Section */}
+      <section className="jmart-deals-section" ref={catalogSectionRef}>
+        <div className="section-header-row">
+          <div className="deals-title-wrap">
+            <h2 className="section-heading">Hot deals <span className="fire-icon">🔥</span></h2>
+            <span className="results-count-badge">
+              {filtered.length} products found in <strong>{targetDb.toUpperCase()}</strong>
+            </span>
+          </div>
+
+          {/* Carousel Arrow Controls */}
+          <div className="deals-pagination-arrows">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="arrow-nav-btn"
+              title="Previous Page"
             >
-              <div>
-                {/* Product Image Container */}
-                <div style={{
-                  width: '100%',
-                  height: '180px',
-                  backgroundColor: 'var(--bg-input)',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: '1rem',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  {p.image_url ? (
-                    <img
-                      src={p.image_url}
-                      alt={p.product_name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                    />
-                  ) : null}
-                  <div style={{ display: p.image_url ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-purple)' }}>
-                    <ShoppingBag size={48} opacity={0.6} />
-                  </div>
-                </div>
+              <ChevronLeft size={16} />
+            </button>
+            <span className="page-indicator-text">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="arrow-nav-btn"
+              title="Next Page"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>{p.category_name || 'Category'}</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Seller: {p.seller_name}</span>
-                </div>
+        {/* Products Grid */}
+        {loading ? (
+          <div className="jmart-loading-box">
+            <div className="loading-spinner"></div>
+            <p>Fetching active catalog from {targetDb.toUpperCase()} database...</p>
+          </div>
+        ) : paginatedProducts.length === 0 ? (
+          <div className="jmart-empty-catalog">
+            <ShoppingBag size={48} className="empty-icon" />
+            <h3>No matching products found</h3>
+            <p>Try searching for different terms or reset your filters.</p>
+          </div>
+        ) : (
+          <div className="jmart-products-grid">
+            {paginatedProducts.map((p) => {
+              const { rating, reviewsCount, originalPrice } = getProductDisplayMeta(p);
+              const wishlisted = isWishlisted(p.product_id);
 
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem', lineHeight: 1.3 }}>
-                  {p.product_name}
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  Brand: <strong style={{ color: 'var(--text-primary)' }}>{p.brand}</strong>
-                </p>
-              </div>
+              return (
+                <div key={p.product_id} className="jmart-product-card">
+                  {/* Top Wishlist Heart Icon */}
+                  <button
+                    onClick={() => toggleWishlist(p)}
+                    className={`product-wishlist-toggle ${wishlisted ? 'favorited' : ''}`}
+                    title={wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                  >
+                    <Heart size={18} fill={wishlisted ? 'var(--color-primary)' : 'none'} />
+                  </button>
 
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>MRP Price</span>
-                    <strong style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-purple)' }}>${parseFloat(p.mrp).toFixed(2)}</strong>
-                  </div>
-                  <span className={`badge ${p.stock_qty > 0 ? 'badge-success' : 'badge-danger'}`}>
-                    {p.stock_qty > 0 ? `${p.stock_qty} in stock` : 'Out of Stock'}
-                  </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <Link to={`/products/${p.product_id}`} className="btn-secondary-outline" style={{ fontSize: '0.82rem', padding: '0.6rem' }}>
-                    <Eye size={14} /> Details
+                  {/* Product Image Presentation */}
+                  <Link to={`/products/${p.product_id}`} className="product-image-container">
+                    {p.image_url ? (
+                      <img
+                        src={p.image_url}
+                        alt={p.product_name}
+                        className="product-card-img"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="product-img-fallback"
+                      style={{ display: p.image_url ? 'none' : 'flex' }}
+                    >
+                      <ShoppingBag size={44} opacity={0.35} />
+                    </div>
                   </Link>
 
-                  <button
-                    onClick={() => handleAddToCart(p)}
-                    disabled={p.stock_qty <= 0}
-                    className="btn-primary-block"
-                    style={{ fontSize: '0.82rem', padding: '0.6rem', marginTop: 0 }}
-                  >
-                    <ShoppingCart size={14} /> Add Cart
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                  {/* Product Meta */}
+                  <div className="product-info-block">
+                    <Link to={`/products/${p.product_id}`} className="product-title-link">
+                      <h3 className="product-card-title">{p.product_name}</h3>
+                    </Link>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center' }}>
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="btn-secondary-outline"
-            style={{ width: 'auto', padding: '0.4rem 0.85rem' }}
-          >
-            ← Prev
-          </button>
-          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: '0 0.5rem' }}>
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="btn-secondary-outline"
-            style={{ width: 'auto', padding: '0.4rem 0.85rem' }}
-          >
-            Next →
-          </button>
-        </div>
-      )}
+                    <div className="product-brand-line">
+                      {p.brand || 'JMART Choice'}
+                    </div>
+
+                    {/* Star Ratings: ★★★★★ 4.8 (21 032 reviews) */}
+                    <div className="product-rating-row">
+                      <div className="star-rating-stars">
+                        <Star size={13} fill="#C6A15B" color="#C6A15B" />
+                        <Star size={13} fill="#C6A15B" color="#C6A15B" />
+                        <Star size={13} fill="#C6A15B" color="#C6A15B" />
+                        <Star size={13} fill="#C6A15B" color="#C6A15B" />
+                        <Star size={13} fill="#C6A15B" color="#C6A15B" />
+                      </div>
+                      <span className="rating-score">{rating}</span>
+                      <span className="reviews-count">({reviewsCount} reviews)</span>
+                    </div>
+
+                    {/* Pricing */}
+                    <div className="product-pricing-row">
+                      <div className="price-group">
+                        <span className="current-price">
+                          ${parseFloat(p.mrp).toFixed(2).replace('.', ',')}
+                        </span>
+                        <span className="original-strikethrough-price">
+                          ${originalPrice.replace('.', ',')}
+                        </span>
+                      </div>
+
+                      <span
+                        className={`stock-badge ${p.stock_qty > 0 ? 'in-stock' : 'out-of-stock'}`}
+                      >
+                        {p.stock_qty > 0 ? `${p.stock_qty} left` : 'Out of stock'}
+                      </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="product-actions-row">
+                      <button
+                        onClick={() => handleAddToCart(p)}
+                        disabled={p.stock_qty <= 0}
+                        className="btn-card-add-cart"
+                      >
+                        <ShoppingCart size={15} /> Add to Cart
+                      </button>
+                      <Link to={`/products/${p.product_id}`} className="btn-card-details">
+                        <Eye size={15} /> Details
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Bottom Pagination */}
+        {totalPages > 1 && (
+          <div className="jmart-pagination-footer">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="btn-page-nav"
+            >
+              ← Previous
+            </button>
+            <div className="page-numbers-list">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setCurrentPage(num)}
+                  className={`page-num-btn ${currentPage === num ? 'active-page' : ''}`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="btn-page-nav"
+            >
+              Next →
+            </button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -148,7 +148,7 @@ ecommerce-dbms/
 │   │   │   ├── InvoiceModal.jsx
 │   │   │   ├── VisualTracker.jsx & VisualTracker.css   # Visual tracking with animated truck
 │   │   │   ├── ReturnModal.jsx                         # Return request submission
-│   │   │   ├── ShipReturnModal.jsx                     # Customer return shipment confirmation
+│   │   │   ├── ShipReturnModal.jsx                     # Customer return shipment confirmationT
 │   │   │   ├── ReviewModal.jsx                         # Feedback and star rating submission
 │   │   │   └── NotificationBell.jsx                    # In-app notification bell & dropdown
 │   │   ├── context/

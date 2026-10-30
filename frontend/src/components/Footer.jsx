@@ -7,15 +7,16 @@ export default function Footer() {
 
   return (
     <footer style={{
-      backgroundColor: 'var(--bg-card)',
-      borderTop: '1px solid var(--border-color)',
-      padding: '1.5rem 1.5rem',
+      backgroundColor: 'var(--color-surface)',
+      borderTop: '1px solid var(--color-border)',
+      padding: '1.25rem 1.5rem',
       marginTop: 'auto',
-      fontSize: '0.85rem',
-      color: 'var(--text-secondary)'
+      fontSize: '0.82rem',
+      color: 'var(--color-text-secondary)',
+      transition: 'background var(--transition-fast), border-color var(--transition-fast)'
     }}>
       <div style={{
-        maxWidth: '1280px',
+        maxWidth: '1400px',
         margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
@@ -24,17 +25,20 @@ export default function Footer() {
         gap: '1rem'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Database size={18} color="var(--accent-purple)" />
-          <span>E-Commerce Management System (Chen ER Diagram Spec)</span>
+          <strong style={{ color: 'var(--color-text)', fontSize: '0.95rem', letterSpacing: '-0.02em' }}>
+            jmart<span style={{ color: 'var(--color-primary)' }}>.in</span>
+          </strong>
+          <span>•</span>
+          <span>DBMS Laboratory Project (Chen ER Diagram Spec)</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Server size={14} color="#10b981" />
-            <span>Target Engine: <strong style={{ color: 'var(--text-primary)', textTransform: 'uppercase' }}>{targetDb}</strong></span>
+            <Server size={14} color={targetDb === 'postgresql' ? 'var(--color-info)' : 'var(--color-success)'} />
+            <span>Active DB Engine: <strong style={{ color: 'var(--color-text)', textTransform: 'uppercase' }}>{targetDb}</strong></span>
           </div>
           <span>•</span>
-          <span>Database Management Systems Project</span>
+          <span>© 2026 JMART E-Commerce</span>
         </div>
       </div>
     </footer>
