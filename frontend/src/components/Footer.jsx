@@ -28,8 +28,6 @@ export default function Footer() {
           <strong style={{ color: 'var(--color-text)', fontSize: '0.95rem', letterSpacing: '-0.02em' }}>
             jmart<span style={{ color: 'var(--color-primary)' }}>.in</span>
           </strong>
-          <span>•</span>
-          <span>DBMS Laboratory Project (Chen ER Diagram Spec)</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
