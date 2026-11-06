@@ -207,7 +207,7 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'Quantum Pro Wireless Headphones',
     brand: 'AcousticTech',
-    mrp: 199.99,
+    mrp: 14999.00,
     stock_qty: 45,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600'
@@ -218,7 +218,7 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'UltraBook Max 15" Laptop',
     brand: 'ApexCompute',
-    mrp: 1299.00,
+    mrp: 96999.00,
     stock_qty: 12,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'
@@ -229,7 +229,7 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'AeroWatch Series 5 Smartwatch',
     brand: 'AeroTech',
-    mrp: 249.50,
+    mrp: 18999.00,
     stock_qty: 30,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'
@@ -240,10 +240,10 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'NovaPod Pro Wireless Earbuds',
     brand: 'AcousticTech',
-    mrp: 129.99,
+    mrp: 9499.00,
     stock_qty: 80,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1590658268037-6bf12f032f55?w=600'
+    image_url: 'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-008',
@@ -251,10 +251,10 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'PixelLens 4K Action Camera',
     brand: 'VisionTech',
-    mrp: 349.99,
+    mrp: 25999.00,
     stock_qty: 18,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600'
+    image_url: 'https://images.unsplash.com/photo-1685615359827-aa31d97578e7?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-009',
@@ -262,7 +262,7 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'ThunderBass Portable Bluetooth Speaker',
     brand: 'AcousticTech',
-    mrp: 79.99,
+    mrp: 5999.00,
     stock_qty: 65,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=600'
@@ -273,7 +273,7 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'SwiftCharge 10000mAh Power Bank',
     brand: 'VoltEdge',
-    mrp: 49.99,
+    mrp: 3499.00,
     stock_qty: 100,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=600'
@@ -284,7 +284,7 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'ZenPad Ultra 11" Tablet',
     brand: 'ApexCompute',
-    mrp: 599.00,
+    mrp: 44999.00,
     stock_qty: 22,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600'
@@ -295,10 +295,10 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'MechStrike RGB Gaming Keyboard',
     brand: 'ByteForce',
-    mrp: 119.99,
+    mrp: 8999.00,
     stock_qty: 40,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600'
+    image_url: 'https://images.unsplash.com/photo-1626958390943-a70309376444?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-013',
@@ -306,7 +306,7 @@ export const sampleProducts = [
     category_id: 'cat-001',
     product_name: 'ProStream 27" 4K Monitor',
     brand: 'VisionTech',
-    mrp: 449.99,
+    mrp: 33999.00,
     stock_qty: 15,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600'
@@ -321,7 +321,7 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Classic Leather Bomber Jacket',
     brand: 'UrbanCraft',
-    mrp: 149.99,
+    mrp: 10999.00,
     stock_qty: 25,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600'
@@ -332,7 +332,7 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Ergonomic Running Shoes',
     brand: 'StrideFlex',
-    mrp: 89.95,
+    mrp: 6499.00,
     stock_qty: 60,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'
@@ -343,7 +343,7 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Slim Fit Denim Jeans',
     brand: 'UrbanCraft',
-    mrp: 64.99,
+    mrp: 4999.00,
     stock_qty: 70,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=600'
@@ -354,10 +354,10 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Premium Cotton Polo T-Shirt',
     brand: 'ThreadLine',
-    mrp: 39.99,
+    mrp: 2999.00,
     stock_qty: 120,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600'
+    image_url: 'https://images.unsplash.com/photo-1625910513413-c23b8bb81cba?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-016',
@@ -365,7 +365,7 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Aviator Polarized Sunglasses',
     brand: 'OpticVue',
-    mrp: 59.99,
+    mrp: 4499.00,
     stock_qty: 90,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600'
@@ -376,10 +376,10 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Canvas Weekender Travel Bag',
     brand: 'NomadGear',
-    mrp: 79.99,
+    mrp: 5999.00,
     stock_qty: 35,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600'
+    image_url: 'https://images.unsplash.com/photo-1448582649076-3981753123b5?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-018',
@@ -387,7 +387,7 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Woolen Knit Beanie Cap',
     brand: 'ThreadLine',
-    mrp: 24.99,
+    mrp: 1899.00,
     stock_qty: 150,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?w=600'
@@ -398,7 +398,7 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Formal Oxford Dress Shoes',
     brand: 'ClassicStep',
-    mrp: 119.99,
+    mrp: 8999.00,
     stock_qty: 28,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600'
@@ -409,7 +409,7 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Floral Print Summer Dress',
     brand: 'BloomStyle',
-    mrp: 54.99,
+    mrp: 3999.00,
     stock_qty: 45,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=600'
@@ -420,7 +420,7 @@ export const sampleProducts = [
     category_id: 'cat-002',
     product_name: 'Genuine Leather Belt',
     brand: 'UrbanCraft',
-    mrp: 34.99,
+    mrp: 2499.00,
     stock_qty: 85,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=600'
@@ -435,7 +435,7 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Smart Ambient Desk Lamp',
     brand: 'Lumina',
-    mrp: 59.99,
+    mrp: 4499.00,
     stock_qty: 50,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600'
@@ -446,10 +446,10 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Ergonomic Office Chair',
     brand: 'ComfortZone',
-    mrp: 299.99,
+    mrp: 21999.00,
     stock_qty: 20,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?w=600'
+    image_url: 'https://images.unsplash.com/photo-1688578735427-994ecdea3ea4?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-023',
@@ -457,10 +457,10 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Minimalist Wooden Coffee Table',
     brand: 'OakCraft',
-    mrp: 189.99,
+    mrp: 13999.00,
     stock_qty: 14,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?w=600'
+    image_url: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-024',
@@ -468,7 +468,7 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Ceramic Planter Set (Pack of 3)',
     brand: 'GreenNest',
-    mrp: 44.99,
+    mrp: 3499.00,
     stock_qty: 55,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=600'
@@ -479,10 +479,10 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Velvet Throw Pillow Covers (Set of 4)',
     brand: 'CozyHome',
-    mrp: 29.99,
+    mrp: 1999.00,
     stock_qty: 80,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1584100936595-c0c9f006b80f?w=600'
+    image_url: 'https://images.unsplash.com/photo-1559051668-9024c9b5e84b?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-026',
@@ -490,7 +490,7 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Stainless Steel Cookware Set (10-Piece)',
     brand: 'ChefPrime',
-    mrp: 149.99,
+    mrp: 10999.00,
     stock_qty: 25,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600'
@@ -501,10 +501,10 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Aromatherapy Essential Oil Diffuser',
     brand: 'ZenAura',
-    mrp: 39.99,
+    mrp: 2999.00,
     stock_qty: 70,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1602928321679-560bb453f190?w=600'
+    image_url: 'https://images.unsplash.com/photo-1608571702346-bf078a741b19?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-028',
@@ -512,10 +512,10 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Wall-Mounted Floating Shelves (Set of 3)',
     brand: 'OakCraft',
-    mrp: 69.99,
+    mrp: 4999.00,
     stock_qty: 38,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1532372320572-cda25653a26d?w=600'
+    image_url: 'https://images.unsplash.com/photo-1597072689227-8882273e8f6a?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-029',
@@ -523,7 +523,7 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Turkish Cotton Bath Towel Set',
     brand: 'CozyHome',
-    mrp: 54.99,
+    mrp: 3999.00,
     stock_qty: 60,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1600369672770-985fd30004eb?w=600'
@@ -534,10 +534,10 @@ export const sampleProducts = [
     category_id: 'cat-003',
     product_name: 'Smart WiFi Air Purifier',
     brand: 'PureBreeze',
-    mrp: 179.99,
+    mrp: 12999.00,
     stock_qty: 16,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600'
+    image_url: 'https://images.unsplash.com/photo-1436473849883-bb3464c23e93?w=500&auto=format&fit=crop&q=60'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -549,7 +549,7 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'The Art of Programming (Hardcover)',
     brand: 'TechPress',
-    mrp: 49.99,
+    mrp: 3499.00,
     stock_qty: 40,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=600'
@@ -560,7 +560,7 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'Premium Leather-Bound Journal',
     brand: 'InkCraft',
-    mrp: 34.99,
+    mrp: 2499.00,
     stock_qty: 55,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600'
@@ -571,7 +571,7 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'Watercolor Paint Set (48 Colors)',
     brand: 'ArtistChoice',
-    mrp: 29.99,
+    mrp: 1999.00,
     stock_qty: 65,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600'
@@ -582,10 +582,10 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'Classic Fiction Collection (Box Set)',
     brand: 'LitWorld',
-    mrp: 79.99,
+    mrp: 5999.00,
     stock_qty: 30,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600'
+    image_url: 'https://images.unsplash.com/photo-1550399105-c4db5fb85c18?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-035',
@@ -593,7 +593,7 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'Architect Precision Pen Set',
     brand: 'InkCraft',
-    mrp: 19.99,
+    mrp: 1499.00,
     stock_qty: 100,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1585336261022-680e295ce3fe?w=600'
@@ -604,7 +604,7 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'Data Science & AI Handbook',
     brand: 'TechPress',
-    mrp: 59.99,
+    mrp: 4499.00,
     stock_qty: 35,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600'
@@ -615,10 +615,10 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'Sketch & Draw A3 Pad (100 Sheets)',
     brand: 'ArtistChoice',
-    mrp: 14.99,
+    mrp: 1099.00,
     stock_qty: 90,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?w=600'
+    image_url: 'https://images.unsplash.com/photo-1525278070609-779c7adb7b71?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-038',
@@ -626,7 +626,7 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'World Atlas & Geography Encyclopedia',
     brand: 'LitWorld',
-    mrp: 44.99,
+    mrp: 3499.00,
     stock_qty: 25,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?w=600'
@@ -637,10 +637,10 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'Executive Desk Organizer (Bamboo)',
     brand: 'InkCraft',
-    mrp: 39.99,
+    mrp: 2999.00,
     stock_qty: 42,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600'
+    image_url: 'https://images.unsplash.com/photo-1644463589256-02679b9c0767?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-040',
@@ -648,7 +648,7 @@ export const sampleProducts = [
     category_id: 'cat-004',
     product_name: 'Motivational Planner & Goal Tracker',
     brand: 'InkCraft',
-    mrp: 24.99,
+    mrp: 1899.00,
     stock_qty: 75,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600'
@@ -663,7 +663,7 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'LEGO Starship Building Toy Set',
     brand: 'BrickMaster',
-    mrp: 69.99,
+    mrp: 4999.00,
     stock_qty: 45,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=600'
@@ -674,10 +674,10 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'RC High-Speed Monster Truck Toy',
     brand: 'TurboPlay',
-    mrp: 49.99,
+    mrp: 3499.00,
     stock_qty: 35,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?w=600'
+    image_url: 'https://images.unsplash.com/photo-1673108231541-728d7873f93c?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-043',
@@ -685,7 +685,7 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'Plush Cuddle Bear Soft Toy',
     brand: 'WarmHug',
-    mrp: 24.99,
+    mrp: 1899.00,
     stock_qty: 80,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=600'
@@ -696,7 +696,7 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'Educational Wooden Puzzle Toy Set',
     brand: 'SmartKidz',
-    mrp: 19.99,
+    mrp: 1499.00,
     stock_qty: 60,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=600'
@@ -707,10 +707,10 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'RoboTech Transforming Action Toy',
     brand: 'MechPlay',
-    mrp: 34.99,
+    mrp: 2499.00,
     stock_qty: 50,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=600'
+    image_url: 'https://images.unsplash.com/photo-1546776310-eef45dd6d63c?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-046',
@@ -718,10 +718,10 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'Classic Wooden Train Track Toy',
     brand: 'TrackCraft',
-    mrp: 39.99,
+    mrp: 2999.00,
     stock_qty: 40,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=600'
+    image_url: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-047',
@@ -729,7 +729,7 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'Kids DIY Science Experiment Toy Kit',
     brand: 'SmartKidz',
-    mrp: 29.99,
+    mrp: 1999.00,
     stock_qty: 55,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600'
@@ -740,10 +740,10 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'Magnetic Building Blocks Toy Set',
     brand: 'BrickMaster',
-    mrp: 44.99,
+    mrp: 3499.00,
     stock_qty: 70,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=600'
+    image_url: 'https://images.unsplash.com/photo-1765403256661-c60b291c38ba?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-049',
@@ -751,7 +751,7 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'Super Hero Action Figure Toy Set',
     brand: 'HeroForge',
-    mrp: 27.99,
+    mrp: 1999.00,
     stock_qty: 65,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1608889175123-8ee362201f81?w=600'
@@ -762,10 +762,10 @@ export const sampleProducts = [
     category_id: 'cat-005',
     product_name: 'Interactive Singing Bird Toy',
     brand: 'WarmHug',
-    mrp: 22.99,
+    mrp: 1699.00,
     stock_qty: 90,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=600'
+    image_url: 'https://images.unsplash.com/photo-1776039775580-a6dee1cdfc0b?w=500&auto=format&fit=crop&q=60'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -777,7 +777,7 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'Wireless Game Controller for PS5 & PC',
     brand: 'NexusPlay',
-    mrp: 69.99,
+    mrp: 4999.00,
     stock_qty: 40,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=600'
@@ -788,7 +788,7 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'Surround Sound Wireless Game Headset',
     brand: 'AudioStrike',
-    mrp: 99.99,
+    mrp: 7499.00,
     stock_qty: 35,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=600'
@@ -799,7 +799,7 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'Retro Arcade Mini Video Game Cabinet',
     brand: 'PixelArcade',
-    mrp: 59.99,
+    mrp: 4499.00,
     stock_qty: 50,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600'
@@ -810,7 +810,7 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'Kingdoms Strategy Medieval Board Game',
     brand: 'GuildGames',
-    mrp: 49.99,
+    mrp: 3499.00,
     stock_qty: 60,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=600'
@@ -821,10 +821,10 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'RGB Optical Wireless Game Mouse',
     brand: 'ViperEdge',
-    mrp: 45.99,
+    mrp: 3499.00,
     stock_qty: 85,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600'
+    image_url: 'https://images.unsplash.com/photo-1628832307345-7404b47f1751?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-056',
@@ -832,10 +832,10 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'CyberStrike VR Virtual Reality Game Headset',
     brand: 'NexusPlay',
-    mrp: 299.99,
+    mrp: 21999.00,
     stock_qty: 15,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?w=600'
+    image_url: 'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-057',
@@ -843,10 +843,10 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'Tabletop Soccer Action Board Game',
     brand: 'ArenaPlay',
-    mrp: 39.99,
+    mrp: 2999.00,
     stock_qty: 30,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600'
+    image_url: 'https://images.unsplash.com/photo-1588318073076-7030f7040046?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-058',
@@ -854,7 +854,7 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'Tournament Wooden Chess Set Strategy Game',
     brand: 'GrandMaster',
-    mrp: 34.99,
+    mrp: 2499.00,
     stock_qty: 45,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=600'
@@ -865,7 +865,7 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'Handheld Retro Game Console (500 Built-in Games)',
     brand: 'PixelArcade',
-    mrp: 39.99,
+    mrp: 2999.00,
     stock_qty: 75,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1531525645387-7f14be1bdbbd?w=600'
@@ -876,10 +876,10 @@ export const sampleProducts = [
     category_id: 'cat-006',
     product_name: 'RGB XXL Desk Mat & Game Mouse Pad',
     brand: 'ViperEdge',
-    mrp: 24.99,
+    mrp: 1899.00,
     stock_qty: 110,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1616588589596-19349e59d997?w=600'
+    image_url: 'https://images.unsplash.com/photo-1696710257827-75e2e5954059?w=500&auto=format&fit=crop&q=60'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -891,7 +891,7 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Radiance Hydrating Face Serum Beauty Oil',
     brand: 'GlowSkin',
-    mrp: 38.99,
+    mrp: 2999.00,
     stock_qty: 80,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600'
@@ -902,7 +902,7 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Organic Herbal Foaming Face Wash Beauty Cleanser',
     brand: 'PureBotanics',
-    mrp: 22.99,
+    mrp: 1699.00,
     stock_qty: 95,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600'
@@ -913,7 +913,7 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Velvet Matte Long-Wear Lipstick Beauty Set',
     brand: 'LuxeShade',
-    mrp: 29.99,
+    mrp: 1999.00,
     stock_qty: 60,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=600'
@@ -924,10 +924,10 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Vitamin C Brightening Moisturizer Beauty Cream',
     brand: 'GlowSkin',
-    mrp: 34.99,
+    mrp: 2499.00,
     stock_qty: 75,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600'
+    image_url: 'https://images.unsplash.com/photo-1625753783470-ec2ab4efeeec?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-065',
@@ -935,10 +935,10 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Professional Ionic Hair Dryer Beauty Blower',
     brand: 'SalonPro',
-    mrp: 79.99,
+    mrp: 5999.00,
     stock_qty: 30,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600'
+    image_url: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-066',
@@ -946,7 +946,7 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Mineral Sunscreen SPF 50 Broad Spectrum Beauty Lotion',
     brand: 'SunShield',
-    mrp: 26.99,
+    mrp: 1999.00,
     stock_qty: 100,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600'
@@ -957,7 +957,7 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Luxury Eau De Parfum Beauty Fragrance 100ml',
     brand: 'AuraScents',
-    mrp: 89.99,
+    mrp: 6499.00,
     stock_qty: 40,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600'
@@ -968,10 +968,10 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Exfoliating Arabica Coffee Body Scrub Beauty Polish',
     brand: 'PureBotanics',
-    mrp: 19.99,
+    mrp: 1499.00,
     stock_qty: 85,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1556228722-d0b71f3b392b?w=600'
+    image_url: 'https://images.unsplash.com/photo-1667803546535-81f5b1c4dbfb?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-069',
@@ -979,10 +979,10 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Pro Makeup Brush Set (15-Piece) Beauty Kit',
     brand: 'LuxeShade',
-    mrp: 32.99,
+    mrp: 2499.00,
     stock_qty: 65,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=600'
+    image_url: 'https://images.unsplash.com/photo-1620464003286-a5b0d79f32c2?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-070',
@@ -990,7 +990,7 @@ export const sampleProducts = [
     category_id: 'cat-007',
     product_name: 'Deep Repair Argan Oil Hair Mask Beauty Care',
     brand: 'SalonPro',
-    mrp: 24.99,
+    mrp: 1899.00,
     stock_qty: 70,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=600'
@@ -1005,7 +1005,7 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Chronograph Stainless Steel Luxury Watch',
     brand: 'Chronos',
-    mrp: 189.99,
+    mrp: 13999.00,
     stock_qty: 25,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=600'
@@ -1016,7 +1016,7 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Titanium Fitness Smart Watch with Heart Rate Monitor',
     brand: 'AeroTech',
-    mrp: 149.99,
+    mrp: 10999.00,
     stock_qty: 45,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=600'
@@ -1027,10 +1027,10 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Vintage Brown Leather Minimalist Quartz Watch',
     brand: 'NordicTime',
-    mrp: 119.99,
+    mrp: 8999.00,
     stock_qty: 35,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600'
+    image_url: 'https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-074',
@@ -1038,10 +1038,10 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Diver 200m Waterproof Automatic Mechanical Watch',
     brand: 'OceanDeep',
-    mrp: 249.99,
+    mrp: 18999.00,
     stock_qty: 20,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1547996160-71dfabb1a7b4?w=600'
+    image_url: 'https://images.unsplash.com/photo-1542816340-4d3de5047cfd?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-075',
@@ -1049,10 +1049,10 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Rose Gold Diamond Accent Women Luxury Watch',
     brand: 'Elegance',
-    mrp: 159.99,
+    mrp: 11999.00,
     stock_qty: 30,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=600'
+    image_url: 'https://images.unsplash.com/photo-1525740664269-1bb17f251737?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-076',
@@ -1060,10 +1060,10 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Military Tactical Shockproof Digital Sport Watch',
     brand: 'ToughGear',
-    mrp: 59.99,
+    mrp: 4499.00,
     stock_qty: 60,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600'
+    image_url: 'https://images.unsplash.com/photo-1783792353186-69f53a804d96?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-077',
@@ -1071,10 +1071,10 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Solar-Powered Eco Chronometer Field Watch',
     brand: 'Chronos',
-    mrp: 199.99,
+    mrp: 14999.00,
     stock_qty: 22,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=600'
+    image_url: 'https://images.unsplash.com/photo-1727391484073-8d37dd702e13?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-078',
@@ -1082,7 +1082,7 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Ultra AMOLED Touchscreen Bluetooth Smart Watch',
     brand: 'AeroTech',
-    mrp: 129.99,
+    mrp: 9499.00,
     stock_qty: 50,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=600'
@@ -1093,10 +1093,10 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Skeleton Dial Automatic Movement Men Watch',
     brand: 'NordicTime',
-    mrp: 279.99,
+    mrp: 20999.00,
     stock_qty: 15,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'
+    image_url: 'https://images.unsplash.com/photo-1618215649872-6e3143a716ec?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-080',
@@ -1104,7 +1104,7 @@ export const sampleProducts = [
     category_id: 'cat-008',
     product_name: 'Ultra-Slim Mesh Band Quartz Elegant Watch',
     brand: 'Elegance',
-    mrp: 89.99,
+    mrp: 6499.00,
     stock_qty: 40,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1533139502658-0198f920d8e8?w=600'
@@ -1119,10 +1119,10 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Official Pro Match Basketball Sport Size 7',
     brand: 'Courtside',
-    mrp: 34.99,
+    mrp: 2499.00,
     stock_qty: 60,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1519766304817-4f37bda74a29?w=600'
+    image_url: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-082',
@@ -1130,7 +1130,7 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Thermal Bonded Tournament Soccer Ball Sport',
     brand: 'StrikerPro',
-    mrp: 29.99,
+    mrp: 1999.00,
     stock_qty: 75,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?w=600'
@@ -1141,7 +1141,7 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Graphite Tennis Racket with Cover Sport Pro',
     brand: 'AeroSpin',
-    mrp: 119.99,
+    mrp: 8999.00,
     stock_qty: 25,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600'
@@ -1152,7 +1152,7 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Non-Slip Eco Alignment Yoga Mat Exercise Sport',
     brand: 'ZenFlex',
-    mrp: 27.99,
+    mrp: 1999.00,
     stock_qty: 90,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=600'
@@ -1163,7 +1163,7 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Adjustable Cast Iron Dumbbells Pair 20kg Sport Fitness',
     brand: 'IronCore',
-    mrp: 149.99,
+    mrp: 10999.00,
     stock_qty: 20,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600'
@@ -1174,10 +1174,10 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'High-Speed Ball Bearing Jump Rope Sport Training',
     brand: 'ZenFlex',
-    mrp: 14.99,
+    mrp: 1099.00,
     stock_qty: 120,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600'
+    image_url: 'https://images.unsplash.com/photo-1516876345887-6dd74f80787a?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-087',
@@ -1185,10 +1185,10 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Aero Cycling Helmet Mountain Bike Sport Safety',
     brand: 'TrailGuard',
-    mrp: 49.99,
+    mrp: 3499.00,
     stock_qty: 40,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1559348349-86f1f65817fe?w=600'
+    image_url: 'https://images.unsplash.com/photo-1591511275477-88f079d88154?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-088',
@@ -1196,7 +1196,7 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Insulated Stainless Steel Sport Water Bottle 1000ml',
     brand: 'HydroActive',
-    mrp: 21.99,
+    mrp: 1599.00,
     stock_qty: 100,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=600'
@@ -1207,10 +1207,10 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Loop Resistance Exercise Bands (5-Pack) Sport Fitness',
     brand: 'IronCore',
-    mrp: 19.99,
+    mrp: 1499.00,
     stock_qty: 85,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=600'
+    image_url: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-090',
@@ -1218,7 +1218,7 @@ export const sampleProducts = [
     category_id: 'cat-009',
     product_name: 'Polarized UV400 Cycling Sunglasses Sport Eyewear',
     brand: 'TrailGuard',
-    mrp: 39.99,
+    mrp: 2999.00,
     stock_qty: 50,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600'
@@ -1233,7 +1233,7 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: 'Mirrorless 24.2MP 4K Video Digital Camera Body',
     brand: 'OpticPro',
-    mrp: 799.99,
+    mrp: 59999.00,
     stock_qty: 12,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600'
@@ -1244,7 +1244,7 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: '50mm f/1.8 Prime Portrait Lens for DSLR Camera',
     brand: 'OpticPro',
-    mrp: 179.99,
+    mrp: 12999.00,
     stock_qty: 28,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?w=600'
@@ -1255,10 +1255,10 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: 'Lightweight Aluminum Tripod with Ball Head for Camera',
     brand: 'SteadyShot',
-    mrp: 69.99,
+    mrp: 4999.00,
     stock_qty: 50,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1512790182412-b19e6d62bc39?w=600'
+    image_url: 'https://images.unsplash.com/photo-1634680582783-0b06ca18a449?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-094',
@@ -1266,7 +1266,7 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: 'Vintage Instant Print Photo Camera with Flash',
     brand: 'RetroSnap',
-    mrp: 89.99,
+    mrp: 6499.00,
     stock_qty: 40,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600'
@@ -1277,10 +1277,10 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: '3-Axis Handheld Gimbal Stabilizer for Action Camera',
     brand: 'SteadyShot',
-    mrp: 129.99,
+    mrp: 9499.00,
     stock_qty: 30,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=600'
+    image_url: 'https://images.unsplash.com/photo-1626362729742-d394ea4c6f43?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-096',
@@ -1288,10 +1288,10 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: '4K Ultra HD Waterproof Action Camera with WiFi',
     brand: 'AquaCam',
-    mrp: 149.99,
+    mrp: 10999.00,
     stock_qty: 35,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=600'
+    image_url: 'https://images.unsplash.com/photo-1484506399805-c273b8e91dce?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-097',
@@ -1299,7 +1299,7 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: 'Padded Shockproof DSLR Camera Backpack Case',
     brand: 'ShutterBag',
-    mrp: 54.99,
+    mrp: 3999.00,
     stock_qty: 45,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1546938576-6e6a64f317cc?w=600'
@@ -1310,10 +1310,10 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: 'Dimmable Studio LED Ring Light with Stand for Camera',
     brand: 'Lumina',
-    mrp: 39.99,
+    mrp: 2999.00,
     stock_qty: 70,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=600'
+    image_url: 'https://images.unsplash.com/photo-1673196649671-eb09066ad6c1?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-099',
@@ -1321,10 +1321,10 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: 'Speedlight Wireless External Flash for Camera',
     brand: 'OpticPro',
-    mrp: 99.99,
+    mrp: 7499.00,
     stock_qty: 25,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1500634245200-e5245c7574ef?w=600'
+    image_url: 'https://images.unsplash.com/photo-1551779420-2ec52303f5e1?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-100',
@@ -1332,10 +1332,10 @@ export const sampleProducts = [
     category_id: 'cat-010',
     product_name: 'High-Speed 128GB V30 SDXC Memory Card for Camera',
     brand: 'FastData',
-    mrp: 29.99,
+    mrp: 1999.00,
     stock_qty: 150,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1563770660941-20978e870e26?w=600'
+    image_url: 'https://images.unsplash.com/photo-1589532768434-a92c95dad7cb?w=500&auto=format&fit=crop&q=60'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -1347,7 +1347,7 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'AeroPhone Pro 5G Flagship Smartphone 256GB',
     brand: 'AeroTech',
-    mrp: 899.99,
+    mrp: 66999.00,
     stock_qty: 20,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600'
@@ -1358,7 +1358,7 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Titan Slim 5G Smartphone 128GB Mobile Phone',
     brand: 'ApexCompute',
-    mrp: 649.99,
+    mrp: 48999.00,
     stock_qty: 30,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600'
@@ -1369,10 +1369,10 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Fast 15W Magnetic Wireless Charging Pad for Phone',
     brand: 'VoltEdge',
-    mrp: 34.99,
+    mrp: 2499.00,
     stock_qty: 90,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1622445262464-84b14e3295b6?w=600'
+    image_url: 'https://images.unsplash.com/photo-1633381638729-27f730955c23?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-104',
@@ -1380,7 +1380,7 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Crystal Clear Shockproof Protective Phone Case',
     brand: 'ShieldArmor',
-    mrp: 16.99,
+    mrp: 1299.00,
     stock_qty: 140,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=600'
@@ -1391,7 +1391,7 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Infinity Fold Dual-Screen Smartphone Phone 512GB',
     brand: 'AeroTech',
-    mrp: 1399.99,
+    mrp: 104999.00,
     stock_qty: 10,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1567581935884-3349723552ca?w=600'
@@ -1402,10 +1402,10 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Magnetic Car Air Vent Mount Holder for Smartphone Phone',
     brand: 'VoltEdge',
-    mrp: 19.99,
+    mrp: 1499.00,
     stock_qty: 110,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600'
+    image_url: 'https://images.unsplash.com/photo-1764347923709-fc48487f2486?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-107',
@@ -1413,10 +1413,10 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Nylon Braided USB-C Fast Charger Cable 2m Phone Cord',
     brand: 'VoltEdge',
-    mrp: 12.99,
+    mrp: 999.00,
     stock_qty: 200,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600'
+    image_url: 'https://images.unsplash.com/photo-1572721546624-05bf65ad7679?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-108',
@@ -1424,7 +1424,7 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Tempered Glass Screen Protector (3-Pack) for Phone',
     brand: 'ShieldArmor',
-    mrp: 14.99,
+    mrp: 1099.00,
     stock_qty: 160,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1605236453806-6ff36851218e?w=600'
@@ -1435,10 +1435,10 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Flexible Bluetooth Selfie Stick Tripod Stand for Phone',
     brand: 'SteadyShot',
-    mrp: 22.99,
+    mrp: 1699.00,
     stock_qty: 80,
     is_active: true,
-    image_url: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=600'
+    image_url: 'https://images.unsplash.com/photo-1576299090369-9067e4adca28?w=500&auto=format&fit=crop&q=60'
   },
   {
     product_id: 'prod-110',
@@ -1446,7 +1446,7 @@ export const sampleProducts = [
     category_id: 'cat-011',
     product_name: 'Smart Phone Core 64GB 4G LTE Unlocked Mobile',
     brand: 'ApexCompute',
-    mrp: 199.99,
+    mrp: 14999.00,
     stock_qty: 45,
     is_active: true,
     image_url: 'https://images.unsplash.com/photo-1575695342320-d2d2d2f9b73f?w=600'
@@ -1489,7 +1489,7 @@ export const sampleOrders = [
     order_date: formatTs(nowMs - 7 * 86400000),
     shipping_date: formatTs(nowMs - 6 * 86400000),
     approx_delivery_date: formatTs(nowMs - 5 * 86400000).substring(0, 10),
-    order_amount: 379.94,
+    order_amount: 27997.00,
     order_status: 'DELIVERED'
   },
   {
@@ -1500,7 +1500,7 @@ export const sampleOrders = [
     order_date: '2026-03-01 16:45:00',
     shipping_date: null,
     approx_delivery_date: null,
-    order_amount: 1299.00,
+    order_amount: 96999.00,
     order_status: 'ORDER_PLACED'
   }
 ];
@@ -1567,19 +1567,19 @@ export const sampleOrderItems = [
     order_id: 'ord-001',
     product_id: 'prod-001',
     quantity: 1,
-    unit_price: 199.99
+    unit_price: 14999.00
   },
   {
     order_id: 'ord-001',
     product_id: 'prod-005',
     quantity: 2,
-    unit_price: 89.95
+    unit_price: 6499.00
   },
   {
     order_id: 'ord-002',
     product_id: 'prod-002',
     quantity: 1,
-    unit_price: 1299.00
+    unit_price: 96999.00
   }
 ];
 
@@ -1589,7 +1589,7 @@ export const samplePayments = [
     order_id: 'ord-001',
     payment_mode: 'Credit/Debit Card',
     payment_status: 'Completed',
-    amount: 379.94,
+    amount: 27997.00,
     date_of_payment: '2026-02-10 14:21:10'
   },
   {
@@ -1597,7 +1597,7 @@ export const samplePayments = [
     order_id: 'ord-002',
     payment_mode: 'UPI',
     payment_status: 'Completed',
-    amount: 1299.00,
+    amount: 96999.00,
     date_of_payment: '2026-03-01 16:46:05'
   }
 ];

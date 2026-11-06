@@ -605,7 +605,7 @@ export default function EmployeeDashboard() {
                     {ret.items?.map((it, idx) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', borderBottom: idx < ret.items.length - 1 ? '1px dashed var(--border-color)' : 'none', padding: '0.3rem 0' }}>
                         <span><strong>{it.product_name}</strong> (Qty: {it.quantity})</span>
-                        <span>Unit: ${parseFloat(it.unit_price).toFixed(2)} • Subtotal: ${(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
+                        <span>Unit: ₹{parseFloat(it.unit_price).toFixed(2)} • Subtotal: ₹{(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
@@ -913,7 +913,7 @@ function OrderCard({ ord, expanded, onToggle, onInvoice, actionButton, actionBad
           <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <span>Customer: <strong>{ord.customer_name}</strong></span>
             <span>Date: <strong>{ord.order_date}</strong></span>
-            <span>Total: <strong style={{ color: 'var(--text-primary)' }}>${parseFloat(ord.order_amount).toFixed(2)}</strong></span>
+            <span>Total: <strong style={{ color: 'var(--text-primary)' }}>₹{parseFloat(ord.order_amount).toFixed(2)}</strong></span>
           </div>
         </div>
 
@@ -949,7 +949,7 @@ function OrderCard({ ord, expanded, onToggle, onInvoice, actionButton, actionBad
             {ord.items?.map((it, idx) => (
               <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
                 <span>{it.product_name} (Qty: {it.quantity})</span>
-                <span>${(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
+                <span>₹{(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
               </div>
             ))}
           </div>

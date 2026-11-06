@@ -504,10 +504,10 @@ export default function Products() {
                     <div className="product-pricing-row">
                       <div className="price-group">
                         <span className="current-price">
-                          ${parseFloat(p.mrp).toFixed(2).replace('.', ',')}
+                          ₹{parseFloat(p.mrp).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         <span className="original-strikethrough-price">
-                          ${originalPrice.replace('.', ',')}
+                          ₹{parseFloat(originalPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
 

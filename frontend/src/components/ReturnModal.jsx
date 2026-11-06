@@ -147,7 +147,7 @@ export default function ReturnModal({ order, onClose, onSuccess }) {
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.product_name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          Brand: {item.brand} • Purchased: {item.quantity} units @ ${parseFloat(item.unit_price).toFixed(2)}
+                          Brand: {item.brand} • Purchased: {item.quantity} units @ ₹{parseFloat(item.unit_price).toFixed(2)}
                         </div>
                       </div>
                     </label>

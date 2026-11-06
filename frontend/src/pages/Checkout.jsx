@@ -156,7 +156,7 @@ export default function Checkout() {
 
             <div>
               <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>Total Paid</span>
-              <strong style={{ fontSize: '1.1rem', color: 'var(--accent-green)' }}>${parseFloat(createdOrder.order_amount || 0).toFixed(2)}</strong>
+              <strong style={{ fontSize: '1.1rem', color: 'var(--accent-green)' }}>₹{parseFloat(createdOrder.order_amount || 0).toFixed(2)}</strong>
             </div>
 
             <div>
@@ -352,7 +352,7 @@ export default function Checkout() {
             {items.map(item => (
               <div key={item.product_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>{item.product?.product_name} (x{item.quantity})</span>
-                <strong style={{ color: 'var(--text-primary)' }}>${parseFloat(item.subtotal).toFixed(2)}</strong>
+                <strong style={{ color: 'var(--text-primary)' }}>₹{parseFloat(item.subtotal).toFixed(2)}</strong>
               </div>
             ))}
           </div>
@@ -361,7 +361,7 @@ export default function Checkout() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
             <span style={{ fontSize: '1rem', fontWeight: 700 }}>Total Payable:</span>
-            <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-purple)' }}>${grandTotal.toFixed(2)}</strong>
+            <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-purple)' }}>₹{grandTotal.toFixed(2)}</strong>
           </div>
 
           <button onClick={handlePlaceOrder} className="btn-primary-block" style={{ padding: '0.85rem' }} disabled={submitting}>

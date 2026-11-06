@@ -287,7 +287,7 @@ export default function CustomerDashboard() {
                   <tr key={ord.order_id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{ord.order_number}</td>
                     <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{ord.order_date}</td>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>${parseFloat(ord.order_amount).toFixed(2)}</td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>₹{parseFloat(ord.order_amount).toFixed(2)}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <span className={`badge ${ord.order_status === 'DELIVERED' || ord.order_status === 'SHIPPED' ? 'badge-success' : 'badge-warning'}`}>
                         {getStatusLabel(ord.order_status)}

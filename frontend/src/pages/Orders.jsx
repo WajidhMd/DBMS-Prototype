@@ -216,7 +216,7 @@ export default function Orders() {
                       <div style={{ textAlign: 'right', marginRight: '0.5rem' }}>
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Order Total</span>
                         <strong style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                          ${parseFloat(ord.order_amount).toFixed(2)}
+                          ₹{parseFloat(ord.order_amount).toFixed(2)}
                         </strong>
                       </div>
 
@@ -306,9 +306,9 @@ export default function Orders() {
                               <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                 <td style={{ padding: '0.5rem', fontWeight: 600 }}>{item.product_name}</td>
                                 <td style={{ padding: '0.5rem', color: 'var(--text-secondary)' }}>{item.brand}</td>
-                                <td style={{ padding: '0.5rem' }}>${parseFloat(item.unit_price).toFixed(2)}</td>
+                                <td style={{ padding: '0.5rem' }}>₹{parseFloat(item.unit_price).toFixed(2)}</td>
                                 <td style={{ padding: '0.5rem' }}>{item.quantity}</td>
-                                <td style={{ padding: '0.5rem', fontWeight: 700 }}>${(parseFloat(item.unit_price) * parseInt(item.quantity)).toFixed(2)}</td>
+                                <td style={{ padding: '0.5rem', fontWeight: 700 }}>₹{(parseFloat(item.unit_price) * parseInt(item.quantity)).toFixed(2)}</td>
                                 {role === 'CUSTOMER' && isDelivered && (
                                   <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                                     <button
@@ -404,7 +404,7 @@ export default function Orders() {
                         <span>Requested: <strong>{ret.request_date}</strong></span>
                         <span>Reason: <strong style={{ color: 'var(--text-primary)' }}>{ret.reason}</strong></span>
                         {ret.refund_amount > 0 && (
-                          <span>Refund: <strong style={{ color: 'var(--accent-green)' }}>${parseFloat(ret.refund_amount).toFixed(2)}</strong> ({ret.refund_status})</span>
+                          <span>Refund: <strong style={{ color: 'var(--accent-green)' }}>₹{parseFloat(ret.refund_amount).toFixed(2)}</strong> ({ret.refund_status})</span>
                         )}
                       </div>
                     </div>
@@ -450,7 +450,7 @@ export default function Orders() {
                       {ret.items?.map((it, idx) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: 'var(--bg-input)', padding: '0.5rem 0.85rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
                           <span><strong>{it.product_name}</strong> (Qty: {it.quantity})</span>
-                          <span>Unit: ${parseFloat(it.unit_price).toFixed(2)} • Subtotal: ${(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
+                          <span>Unit: ₹{parseFloat(it.unit_price).toFixed(2)} • Subtotal: ₹{(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>

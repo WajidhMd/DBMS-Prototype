@@ -133,7 +133,7 @@ export default function Cart() {
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>
-                        ${parseFloat(item.unit_price).toFixed(2)}
+                        ₹{parseFloat(item.unit_price).toFixed(2)}
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem' }}>
@@ -155,7 +155,7 @@ export default function Cart() {
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                        ${parseFloat(item.subtotal).toFixed(2)}
+                        ₹{parseFloat(item.subtotal).toFixed(2)}
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>
@@ -194,7 +194,7 @@ export default function Cart() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
               <span style={{ fontSize: '1rem', fontWeight: 700 }}>Grand Total (Derived):</span>
-              <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-purple)' }}>${grandTotal.toFixed(2)}</strong>
+              <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-purple)' }}>₹{grandTotal.toFixed(2)}</strong>
             </div>
 
             <Link to="/checkout" className="btn-primary-block" style={{ padding: '0.85rem' }}>

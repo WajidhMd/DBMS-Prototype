@@ -280,7 +280,7 @@ export default function AdminDashboard() {
 
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Total Revenue</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-green)' }}>${stats?.totalRevenue || 0}</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-green)' }}>₹{stats?.totalRevenue || 0}</div>
         </div>
       </div>
 
@@ -348,7 +348,7 @@ export default function AdminDashboard() {
                         <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{o.order_number}</td>
                         <td style={{ padding: '0.75rem' }}>{o.customer_name}<br/><span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{o.customer_email}</span></td>
                         <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>{o.order_date}</td>
-                        <td style={{ padding: '0.75rem', fontWeight: 700 }}>${parseFloat(o.order_amount).toFixed(2)}</td>
+                        <td style={{ padding: '0.75rem', fontWeight: 700 }}>₹{parseFloat(o.order_amount).toFixed(2)}</td>
                         <td style={{ padding: '0.75rem' }}>
                           <span className={`badge ${o.payment?.payment_status === 'Completed' ? 'badge-success' : 'badge-warning'}`}>
                             {o.payment?.payment_mode || 'Card'} ({o.payment?.payment_status || 'Paid'})
@@ -679,7 +679,7 @@ export default function AdminDashboard() {
                       <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>{p.brand}</td>
                       <td style={{ padding: '0.75rem' }}><span className="badge badge-cyan">{p.category_name}</span></td>
                       <td style={{ padding: '0.75rem' }}>{p.seller_name}</td>
-                      <td style={{ padding: '0.75rem', fontWeight: 700 }}>${parseFloat(p.mrp).toFixed(2)}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 700 }}>₹{parseFloat(p.mrp).toFixed(2)}</td>
                       <td style={{ padding: '0.75rem' }}>{p.stock_qty}</td>
                       <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                         <button onClick={() => handleDeleteProduct(p.product_id)} className="btn-secondary-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', color: '#ef4444', borderColor: '#ef4444' }}>
@@ -767,7 +767,7 @@ export default function AdminDashboard() {
                       <td style={{ padding: '0.75rem', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.payment_id}</td>
                       <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{p.order_number}</td>
                       <td style={{ padding: '0.75rem' }}>{p.customer_name}</td>
-                      <td style={{ padding: '0.75rem', fontWeight: 700 }}>${parseFloat(p.amount).toFixed(2)}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 700 }}>₹{parseFloat(p.amount).toFixed(2)}</td>
                       <td style={{ padding: '0.75rem' }}>{p.payment_mode}</td>
                       <td style={{ padding: '0.75rem' }}>
                         <span className={`badge ${p.payment_status === 'Completed' ? 'badge-success' : 'badge-warning'}`}>

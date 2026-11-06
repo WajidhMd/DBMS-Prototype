@@ -265,7 +265,7 @@ export default function SellerDashboard() {
           </div>
           <div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Total Revenue</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>${totalSalesAmount.toFixed(2)}</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>₹{totalSalesAmount.toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -443,7 +443,7 @@ export default function SellerDashboard() {
                           </div>
                         </div>
                         <div>
-                          <strong>{it.quantity} units</strong> • Subtotal: ${(parseFloat(it.unit_price) * it.quantity).toFixed(2)}
+                          <strong>{it.quantity} units</strong> • Subtotal: ₹{(parseFloat(it.unit_price) * it.quantity).toFixed(2)}
                         </div>
                       </div>
                     ))}
@@ -533,7 +533,7 @@ export default function SellerDashboard() {
                       <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
                         <span>Customer: <strong>{ord.customer_name}</strong></span>
                         <span>Date: <strong>{ord.order_date}</strong></span>
-                        <span>Total: <strong>${parseFloat(ord.order_amount).toFixed(2)}</strong></span>
+                        <span>Total: <strong>₹{parseFloat(ord.order_amount).toFixed(2)}</strong></span>
                       </div>
                     </div>
 
@@ -584,7 +584,7 @@ export default function SellerDashboard() {
                     {ord.items?.map((it, idx) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem 0' }}>
                         <span><strong>{it.product_name}</strong> (Qty: {it.quantity})</span>
-                        <span>${(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
+                        <span>₹{(parseFloat(it.unit_price) * it.quantity).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
@@ -614,7 +614,7 @@ export default function SellerDashboard() {
                   <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{p.product_name}</td>
                   <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{p.brand}</td>
                   <td style={{ padding: '0.75rem 1rem' }}><span className="badge badge-cyan">{p.category_name || 'Category'}</span></td>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>${parseFloat(p.mrp).toFixed(2)}</td>
+                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>₹{parseFloat(p.mrp).toFixed(2)}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{p.stock_qty}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <span className={`badge ${p.is_active ? 'badge-success' : 'badge-danger'}`}>

@@ -302,9 +302,9 @@ export default function InvoiceModal({ order, onClose }) {
                       <td style={{ padding: '0.65rem 0.85rem', color: '#64748b' }}>{index + 1}</td>
                       <td style={{ padding: '0.65rem 0.85rem', fontWeight: 600, color: '#0f172a' }}>{item.product_name || 'Product Item'}</td>
                       <td style={{ padding: '0.65rem 0.85rem', color: '#64748b' }}>{item.brand || 'N/A'}</td>
-                      <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>${unitPrice.toFixed(2)}</td>
+                      <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>₹{unitPrice.toFixed(2)}</td>
                       <td style={{ padding: '0.65rem 0.85rem', textAlign: 'center', fontWeight: 600 }}>{qty}</td>
-                      <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>${itemTotal.toFixed(2)}</td>
+                      <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>₹{itemTotal.toFixed(2)}</td>
                     </tr>
                   );
                 })}
@@ -316,7 +316,7 @@ export default function InvoiceModal({ order, onClose }) {
               <div style={{ width: '280px', backgroundColor: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.4rem', fontSize: '0.85rem', color: '#64748b' }}>
                   <span>Items Subtotal:</span>
-                  <strong>${totalAmount.toFixed(2)}</strong>
+                  <strong>₹{totalAmount.toFixed(2)}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.4rem', fontSize: '0.85rem', color: '#64748b' }}>
                   <span>Standard Shipping:</span>
@@ -324,7 +324,7 @@ export default function InvoiceModal({ order, onClose }) {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.4rem', fontSize: '0.85rem', color: '#64748b' }}>
                   <span>Estimated Tax:</span>
-                  <span>$0.00 (Included)</span>
+                  <span>₹0.00 (Included)</span>
                 </div>
                 <div style={{
                   display: 'flex',
@@ -337,7 +337,7 @@ export default function InvoiceModal({ order, onClose }) {
                   color: '#4338ca'
                 }}>
                   <span>Total Paid:</span>
-                  <span>${totalAmount.toFixed(2)}</span>
+                  <span>₹{totalAmount.toFixed(2)}</span>
                 </div>
               </div>
             </div>

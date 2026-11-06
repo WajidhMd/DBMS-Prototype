@@ -190,8 +190,8 @@ INSERT INTO order_item (order_id, product_id, quantity, unit_price) VALUES
 
 -- 11. Insert Payments
 INSERT INTO payments (payment_id, order_id, payment_mode, payment_status, amount, date_of_payment) VALUES
-('pay-001', 'ord-001', 'Credit/Debit Card', 'Completed', 379.94, '2026-02-10 14:21:10'),
-('pay-002', 'ord-002', 'UPI', 'Completed', 1299.00, '2026-03-01 16:46:05');
+('pay-001', 'ord-001', 'Credit/Debit Card', 'Completed', 27997.00, '2026-02-10 14:21:10'),
+('pay-002', 'ord-002', 'UPI', 'Completed', 96999.00, '2026-03-01 16:46:05');
 
 -- 12. Insert Reviews
 INSERT INTO reviews (review_id, customer_id, product_id, rating, description, review_date) VALUES

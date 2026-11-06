@@ -210,7 +210,7 @@ export default function ProductDetails() {
             </div>
 
             <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-purple)', marginBottom: '1rem' }}>
-              ${parseFloat(product.mrp).toFixed(2)}
+              ₹{parseFloat(product.mrp).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
