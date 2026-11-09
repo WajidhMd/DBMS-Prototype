@@ -5,6 +5,7 @@ import { useDb } from '../context/DbContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../services/api';
 import {
+  Menu,
   Search,
   Heart,
   ShoppingCart,
@@ -21,9 +22,10 @@ import {
   Moon
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import HelpModal from './HelpModal';
 import './Navbar.css';
 
-export default function Navbar() {
+export default function Navbar({ onOpenSidebar }) {
   const { user, role, logout } = useAuth();
   const { targetDb, setTargetDb } = useDb();
   const { theme, toggleTheme } = useTheme();
@@ -36,6 +38,7 @@ export default function Navbar() {
   const [searchCategory, setSearchCategory] = useState('');
   const [categories, setCategories] = useState([]);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     if (role === 'CUSTOMER') {
@@ -104,8 +107,21 @@ export default function Navbar() {
   };
 
   return (
+  <>
     <header className="jmart-top-header">
       <div className="header-left-group">
+        {/* JMART Hamburger All Button */}
+        <button
+          type="button"
+          className="header-hamburger-btn"
+          onClick={onOpenSidebar}
+          aria-label="Open Navigation Menu"
+          title="All Categories & Navigation"
+        >
+          <Menu size={22} className="hamburger-icon" />
+          <span className="hamburger-text">All</span>
+        </button>
+
         {/* JMART Brand Logo with Gold Smile */}
         <Link to="/" className="jmart-logo navbar-logo">
           <div className="logo-main">
@@ -312,5 +328,36 @@ export default function Navbar() {
         )}
       </div>
     </header>
+
+    {/* JMART Sub-navigation Category Bar */}
+    <nav className="jmart-subnav-strip" aria-label="Quick Categories Navigation">
+      <button
+        type="button"
+        className="subnav-item subnav-all-btn"
+        onClick={onOpenSidebar}
+      >
+        <Menu size={16} />
+        <span>All</span>
+      </button>
+      <Link to="/products?sort=popular" className="subnav-item">Bestsellers</Link>
+      <Link to="/products?category_id=cat-011" className="subnav-item">Mobiles</Link>
+      <Link to="/products?category_id=cat-001" className="subnav-item">Electronics</Link>
+      <Link to="/products?category_id=cat-002" className="subnav-item">Fashion</Link>
+      <Link to="/products?category_id=cat-003" className="subnav-item">Home &amp; Kitchen</Link>
+      <Link to="/products?category_id=cat-007" className="subnav-item">Beauty</Link>
+      <Link to="/products?category_id=cat-004" className="subnav-item">Books</Link>
+      <Link to="/products?sort=newest" className="subnav-item">New Releases</Link>
+      <button
+        type="button"
+        onClick={() => setShowHelp(true)}
+        className="subnav-item subnav-help-item"
+      >
+        Customer Service
+      </button>
+    </nav>
+
+    {/* Help & Support Modal */}
+    {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+  </>
   );
 }

@@ -77,12 +77,31 @@ export default function Products() {
     const qParam = params.get('q');
     const catIdParam = params.get('category_id');
     const catNameParam = params.get('category');
+    const sortParam = params.get('sort');
+    const maxPriceParam = params.get('max_price');
 
-    if (qParam !== null) setSearch(qParam);
-    if (catIdParam !== null) setSelectedCategory(catIdParam);
-    if (catNameParam !== null) {
+    if (qParam !== null) {
+      setSearch(qParam);
+    } else if (catNameParam !== null) {
       setSearch(catNameParam);
+    } else {
+      setSearch('');
     }
+
+    if (catIdParam !== null) {
+      setSelectedCategory(catIdParam);
+    } else {
+      setSelectedCategory('');
+    }
+
+    if (sortParam !== null) {
+      setSortBy(sortParam);
+    }
+    if (maxPriceParam !== null) {
+      setMaxPrice(maxPriceParam);
+    }
+
+    setCurrentPage(1);
   }, [location.search]);
 
   useEffect(() => {
@@ -368,6 +387,8 @@ export default function Products() {
             onChange={(e) => setSortBy(e.target.value)}
           >
             <option value="">Default Order</option>
+            <option value="popular">Bestsellers / Most Popular</option>
+            <option value="newest">New Releases</option>
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
             <option value="name_asc">Name: A to Z</option>

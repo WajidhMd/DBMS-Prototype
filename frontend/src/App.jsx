@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
 import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 
 import Login from './pages/Login';
@@ -45,21 +46,14 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// Root Redirect Helper
+// Root Redirect Helper - always land on the flagship store catalog homepage
 const HomeRedirect = () => {
-  const { user, role, loading } = useAuth();
-
-  if (loading) return null;
-  if (!user) return <Navigate to="/products" replace />;
-
-  if (role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
-  if (role === 'EMPLOYEE') return <Navigate to="/employee/dashboard" replace />;
-  if (role === 'SELLER') return <Navigate to="/seller/dashboard" replace />;
-  return <Navigate to="/customer/dashboard" replace />;
+  return <Navigate to="/products" replace />;
 };
 
 export default function App() {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // If on login or register page, render dedicated full auth window
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -76,10 +70,13 @@ export default function App() {
 
   return (
     <div className="jmart-app-frame">
+      {/* Sliding JMART Sidebar Drawer */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
       <div className="jmart-window">
         {/* Full-width Main Column with Top Header & Content Surface */}
         <div className="jmart-main-container">
-          <Navbar />
+          <Navbar onOpenSidebar={() => setSidebarOpen(true)} />
           <main className="jmart-content-surface">
             <Routes>
               <Route path="/" element={<HomeRedirect />} />

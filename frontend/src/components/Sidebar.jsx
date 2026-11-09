@@ -1,44 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
 import { useTheme } from '../context/ThemeContext';
 import {
-  LayoutGrid,
-  ShoppingBag,
-  ShoppingCart,
-  Package,
-  MapPin,
-  ShieldAlert,
-  LayoutDashboard,
-  Percent,
-  HelpCircle,
-  LogOut,
-  LogIn,
-  Layers,
+  X,
+  User,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  TrendingUp,
+  Flame,
+  Sparkles,
+  Tv,
+  Radio,
+  Smartphone,
+  Headphones,
+  BookOpen,
+  Film,
+  Music,
+  Laptop,
+  Shirt,
+  Armchair,
+  ShoppingBag,
+  Boxes,
+  Car,
+  Gamepad2,
+  CreditCard,
+  Rocket,
+  Briefcase,
+  HeartHandshake,
+  Ticket,
+  Tag,
+  Globe,
+  HelpCircle,
+  LogIn,
+  LogOut,
   Database,
   Sun,
-  Moon
+  Moon,
+  ArrowUp
 } from 'lucide-react';
 import HelpModal from './HelpModal';
 import './Sidebar.css';
 
-const SIDEBAR_CATEGORIES = [
-  'Echo and Alexa',
-  'Kindle',
-  'Books',
-  'Electronics',
-  'Home and Garden',
-  'Fashion',
-  'Health and Beauty',
-  'Automotive',
-  'Sport and Tourism',
-  'Games',
-  'Film and Music',
-  'Animals',
-  'Hobby',
-  'Gift Cards'
+// All official store categories from database
+const ALL_CATALOG_CATEGORIES = [
+  { id: 'cat-001', name: 'Electronics & Gadgets' },
+  { id: 'cat-002', name: 'Fashion & Apparel' },
+  { id: 'cat-003', name: 'Home & Furniture' },
+  { id: 'cat-004', name: 'Books & Stationery' },
+  { id: 'cat-005', name: 'Toys & Games' },
+  { id: 'cat-006', name: 'Video Games & Consoles' },
+  { id: 'cat-007', name: 'Beauty & Personal Care' },
+  { id: 'cat-008', name: 'Watches & Accessories' },
+  { id: 'cat-009', name: 'Sports & Outdoors' },
+  { id: 'cat-010', name: 'Cameras & Photography' },
+  { id: 'cat-011', name: 'Phones & Accessories' }
 ];
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -47,10 +65,37 @@ export default function Sidebar({ isOpen, onClose }) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showHelp, setShowHelp] = useState(false);
 
-  const handleCategoryClick = (categoryName) => {
-    navigate(`/products?category=${encodeURIComponent(categoryName)}`);
+  const [showHelp, setShowHelp] = useState(false);
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
+  const [programsExpanded, setProgramsExpanded] = useState(false);
+  const sidebarContentRef = useRef(null);
+
+  // Close on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Prevent background scroll when sidebar is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  const handleNav = (path) => {
+    navigate(path);
     if (onClose) onClose();
   };
 
@@ -67,208 +112,606 @@ export default function Sidebar({ isOpen, onClose }) {
     if (onClose) onClose();
   };
 
+  const scrollToTop = () => {
+    if (sidebarContentRef.current) {
+      sidebarContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Derive user greeting name
+  const getUserGreeting = () => {
+    if (!user) return 'Sign in';
+    if (user.email) {
+      const namePart = user.email.split('@')[0];
+      return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    }
+    return 'Customer';
+  };
+
   return (
     <>
-      <aside className={`jmart-sidebar ${isOpen ? 'open' : ''}`}>
-        {/* Brand Header */}
-        <div className="sidebar-brand-wrapper">
-          <Link to="/" className="jmart-logo" onClick={onClose}>
-            <div className="logo-main">
-              <span className="logo-text">jmart</span>
-              <span className="logo-domain">.in</span>
+      {/* Backdrop overlay */}
+      <div
+        className={`jmart-sidebar-backdrop ${isOpen ? 'active' : ''}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Sliding Sidebar Drawer */}
+      <aside
+        className={`jmart-drawer-sidebar ${isOpen ? 'open' : ''}`}
+        aria-label="Navigation Sidebar"
+      >
+        {/* Top Header Banner */}
+        <div className="sidebar-header-banner">
+          <div
+            className="sidebar-user-greeting"
+            onClick={() => handleNav(user ? '/profile' : '/login')}
+            title={user ? 'View Profile' : 'Sign In to your account'}
+          >
+            <div className="sidebar-avatar-circle">
+              <User size={20} color="#FFFFFF" />
             </div>
-            {/* Signature smile arrow vector styled in Luxury Gold */}
-            <svg className="jmart-smile-curve" viewBox="0 0 100 24" width="76" height="15">
-              <path d="M 6 6 Q 50 25 90 7" fill="transparent" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" />
-              <path d="M 84 4 L 92 7 L 85 13 Z" fill="var(--color-primary)" stroke="var(--color-primary)" strokeWidth="1" strokeLinejoin="round" />
-            </svg>
-          </Link>
-        </div>
-
-        {/* Database Quick Switcher inside Sidebar */}
-        <div className="sidebar-db-widget">
-          <div className="sidebar-db-label">
-            <Database size={13} />
-            <span>ACTIVE DB: <strong>{targetDb.toUpperCase()}</strong></span>
+            <div className="sidebar-greeting-text">
+              <span className="greeting-sub">Hello,</span>
+              <span className="greeting-main">{getUserGreeting()}</span>
+            </div>
+            {role && (
+              <span className="sidebar-role-badge">{role}</span>
+            )}
           </div>
-          <div className="sidebar-db-toggle">
+
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={onClose}
+            aria-label="Close sidebar menu"
+          >
+            <X size={22} />
+          </button>
+        </div>
+
+        {/* Scrollable Menu Content */}
+        <div className="sidebar-scrollable-body" ref={sidebarContentRef}>
+          {/* Active Database & Theme Bar */}
+          <div className="sidebar-quick-toggles">
+            <div className="sidebar-db-toggle-row">
+              <div className="db-toggle-label">
+                <Database size={13} />
+                <span>DB: <strong>{targetDb.toUpperCase()}</strong></span>
+              </div>
+              <div className="db-toggle-pills">
+                <button
+                  type="button"
+                  className={`db-toggle-pill ${targetDb === 'postgresql' ? 'active-pg' : ''}`}
+                  onClick={() => handleDbChange('postgresql')}
+                >
+                  PostgreSQL
+                </button>
+                <button
+                  type="button"
+                  className={`db-toggle-pill ${targetDb === 'mongodb' ? 'active-mongo' : ''}`}
+                  onClick={() => handleDbChange('mongodb')}
+                >
+                  MongoDB
+                </button>
+              </div>
+            </div>
+
             <button
-              className={`db-toggle-btn ${targetDb === 'postgresql' ? 'active-pg' : ''}`}
-              onClick={() => handleDbChange('postgresql')}
-              title="Switch to PostgreSQL Engine"
+              type="button"
+              className="sidebar-theme-toggle-btn"
+              onClick={toggleTheme}
             >
-              PostgreSQL
-            </button>
-            <button
-              className={`db-toggle-btn ${targetDb === 'mongodb' ? 'active-mongo' : ''}`}
-              onClick={() => handleDbChange('mongodb')}
-              title="Switch to MongoDB Engine"
-            >
-              MongoDB
+              {theme === 'dark' ? <Sun size={14} color="#C6A15B" /> : <Moon size={14} color="#9B7938" />}
+              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
           </div>
-        </div>
 
-        {/* Categories Section Heading Pill */}
-        <div className="sidebar-section-pill">
-          <LayoutGrid size={17} className="pill-icon" />
-          <span>Categories</span>
-        </div>
+          {/* ═════════════════════════════════════════════ */}
+          {/* 1. TRENDING                                  */}
+          {/* ═════════════════════════════════════════════ */}
+          <div className="sidebar-menu-section">
+            <h3 className="sidebar-section-heading">Trending</h3>
+            <ul className="sidebar-links-list">
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?sort=popular')}
+                >
+                  <TrendingUp size={16} className="item-icon" />
+                  <span>Bestsellers</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?sort=newest')}
+                >
+                  <Sparkles size={16} className="item-icon" />
+                  <span>New Releases</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+            </ul>
+          </div>
 
-        {/* Categories List */}
-        <div className="sidebar-categories-scroll">
-          <ul className="sidebar-categories-list">
-            {SIDEBAR_CATEGORIES.map((cat, idx) => {
-              const queryParams = new URLSearchParams(location.search);
-              const isActive = location.pathname === '/products' && queryParams.get('category') === cat;
-              return (
-                <li key={idx}>
+          <div className="sidebar-divider" />
+
+          {/* ═════════════════════════════════════════════ */}
+          {/* 2. DIGITAL CONTENT AND DEVICES               */}
+          {/* ═════════════════════════════════════════════ */}
+          <div className="sidebar-menu-section">
+            <h3 className="sidebar-section-heading">Digital Content and Devices</h3>
+            <ul className="sidebar-links-list">
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?q=Echo')}
+                >
+                  <Radio size={16} className="item-icon" />
+                  <span>Echo &amp; Alexa</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?q=TV')}
+                >
+                  <Tv size={16} className="item-icon" />
+                  <span>Fire TV</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-004&q=Book')}
+                >
+                  <BookOpen size={16} className="item-icon" />
+                  <span>Kindle E-Readers &amp; eBooks</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-004')}
+                >
+                  <Headphones size={16} className="item-icon" />
+                  <span>Audible Audiobooks</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-006')}
+                >
+                  <Film size={16} className="item-icon" />
+                  <span>JMART Prime Video</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?q=Headphones')}
+                >
+                  <Music size={16} className="item-icon" />
+                  <span>JMART Music</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div className="sidebar-divider" />
+
+          {/* ═════════════════════════════════════════════ */}
+          {/* 3. SHOP BY CATEGORY                          */}
+          {/* ═════════════════════════════════════════════ */}
+          <div className="sidebar-menu-section">
+            <h3 className="sidebar-section-heading">Shop by Category</h3>
+            <ul className="sidebar-links-list">
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-011')}
+                >
+                  <Smartphone size={16} className="item-icon" />
+                  <span>Mobiles, Computers</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-001')}
+                >
+                  <Laptop size={16} className="item-icon" />
+                  <span>TV, Appliances, Electronics</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-002&q=Men')}
+                >
+                  <Shirt size={16} className="item-icon" />
+                  <span>Men's Fashion</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-002&q=Women')}
+                >
+                  <ShoppingBag size={16} className="item-icon" />
+                  <span>Women's Fashion</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-003')}
+                >
+                  <Armchair size={16} className="item-icon" />
+                  <span>Home, Kitchen, Pets</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-007')}
+                >
+                  <Sparkles size={16} className="item-icon" />
+                  <span>Beauty, Health, Grocery</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-009')}
+                >
+                  <ShoppingBag size={16} className="item-icon" />
+                  <span>Sports, Fitness, Bags, Luggage</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-005')}
+                >
+                  <Boxes size={16} className="item-icon" />
+                  <span>Toys, Baby Products, Kids' Fashion</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?q=Car')}
+                >
+                  <Car size={16} className="item-icon" />
+                  <span>Car, Motorbike, Industrial</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-004')}
+                >
+                  <BookOpen size={16} className="item-icon" />
+                  <span>Books</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-006')}
+                >
+                  <Gamepad2 size={16} className="item-icon" />
+                  <span>Movies, Music &amp; Video Games</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+
+              {/* Expandable All Categories List */}
+              {categoriesExpanded && (
+                <div className="sidebar-expanded-sublist animate-slide-down">
+                  {ALL_CATALOG_CATEGORIES.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        className="sidebar-menu-item nested-item"
+                        onClick={() => handleNav(`/products?category_id=${c.id}`)}
+                      >
+                        <span>{c.name}</span>
+                        <ChevronRight size={13} className="item-arrow" />
+                      </button>
+                    </li>
+                  ))}
+                </div>
+              )}
+
+              {/* See All Categories Toggle */}
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item see-all-toggle"
+                  onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                >
+                  <span>{categoriesExpanded ? 'See less' : 'See all'}</span>
+                  {categoriesExpanded ? (
+                    <ChevronUp size={16} className="item-arrow-toggle" />
+                  ) : (
+                    <ChevronDown size={16} className="item-arrow-toggle" />
+                  )}
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div className="sidebar-divider" />
+
+          {/* ═════════════════════════════════════════════ */}
+          {/* 4. PROGRAMS & FEATURES                       */}
+          {/* ═════════════════════════════════════════════ */}
+          <div className="sidebar-menu-section">
+            <h3 className="sidebar-section-heading">Programs &amp; Features</h3>
+            <ul className="sidebar-links-list">
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?q=Card')}
+                >
+                  <CreditCard size={16} className="item-icon" />
+                  <span>Gift Cards &amp; Mobile Recharges</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?q=Tech')}
+                >
+                  <Rocket size={16} className="item-icon" />
+                  <span>JMART Launchpad</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav(role === 'SELLER' ? '/seller/dashboard' : '/register')}
+                >
+                  <Briefcase size={16} className="item-icon" />
+                  <span>JMART Business</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-003')}
+                >
+                  <HeartHandshake size={16} className="item-icon" />
+                  <span>Handloom and Handicrafts</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?category_id=cat-007')}
+                >
+                  <Sparkles size={16} className="item-icon" />
+                  <span>JMART Saheli</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?q=Custom')}
+                >
+                  <Tag size={16} className="item-icon" />
+                  <span>JMART Custom</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?q=Travel')}
+                >
+                  <Ticket size={16} className="item-icon" />
+                  <span>Flight Tickets</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?max_price=2499')}
+                >
+                  <Tag size={16} className="item-icon" />
+                  <span>Clearance store</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/products?sort=popular')}
+                >
+                  <Globe size={16} className="item-icon" />
+                  <span>International Brands</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+
+              {/* See All Programs Toggle */}
+              {programsExpanded && (
+                <div className="sidebar-expanded-sublist animate-slide-down">
+                  <li>
+                    <button
+                      type="button"
+                      className="sidebar-menu-item nested-item"
+                      onClick={() => handleNav('/products')}
+                    >
+                      <span>Explore All Deals &amp; Offers</span>
+                      <ChevronRight size={13} className="item-arrow" />
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      className="sidebar-menu-item nested-item"
+                      onClick={() => handleNav('/cart')}
+                    >
+                      <span>View Shopping Cart</span>
+                      <ChevronRight size={13} className="item-arrow" />
+                    </button>
+                  </li>
+                </div>
+              )}
+
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item see-all-toggle"
+                  onClick={() => setProgramsExpanded(!programsExpanded)}
+                >
+                  <span>{programsExpanded ? 'See less' : 'See all'}</span>
+                  {programsExpanded ? (
+                    <ChevronUp size={16} className="item-arrow-toggle" />
+                  ) : (
+                    <ChevronDown size={16} className="item-arrow-toggle" />
+                  )}
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div className="sidebar-divider" />
+
+          {/* ═════════════════════════════════════════════ */}
+          {/* 5. HELP & SETTINGS                           */}
+          {/* ═════════════════════════════════════════════ */}
+          <div className="sidebar-menu-section">
+            <h3 className="sidebar-section-heading">Help &amp; Settings</h3>
+            <ul className="sidebar-links-list">
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => {
+                    if (!user) handleNav('/login');
+                    else if (role === 'CUSTOMER') handleNav('/customer/dashboard');
+                    else if (role === 'SELLER') handleNav('/seller/dashboard');
+                    else if (role === 'EMPLOYEE') handleNav('/employee/dashboard');
+                    else if (role === 'ADMIN') handleNav('/admin/dashboard');
+                    else handleNav('/profile');
+                  }}
+                >
+                  <User size={16} className="item-icon" />
+                  <span>Your Account</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => setShowHelp(true)}
+                >
+                  <HelpCircle size={16} className="item-icon" />
+                  <span>Customer Service</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+
+              {user ? (
+                <li>
                   <button
-                    onClick={() => handleCategoryClick(cat)}
-                    className={`sidebar-category-link ${isActive ? 'active' : ''}`}
+                    type="button"
+                    className="sidebar-menu-item logout-action"
+                    onClick={handleLogout}
                   >
-                    <span>{cat}</span>
-                    <ChevronRight size={13} className="arrow-hint" />
+                    <LogOut size={16} className="item-icon" />
+                    <span>Sign Out</span>
                   </button>
                 </li>
-              );
-            })}
-          </ul>
-        </div>
+              ) : (
+                <li>
+                  <button
+                    type="button"
+                    className="sidebar-menu-item login-action"
+                    onClick={() => handleNav('/login')}
+                  >
+                    <LogIn size={16} className="item-icon" />
+                    <span>Sign in</span>
+                  </button>
+                </li>
+              )}
 
-        {/* Quick Portal Navigation */}
-        <div className="sidebar-portal-nav">
-          <div className="sidebar-section-title">Navigation</div>
-          <ul className="sidebar-nav-links">
-            <li>
-              <Link to="/products" className={`sidebar-nav-item ${location.pathname === '/products' ? 'active' : ''}`} onClick={onClose}>
-                <ShoppingBag size={16} /> Products Catalog
-              </Link>
-            </li>
-
-            {user && role === 'CUSTOMER' && (
-              <>
-                <li>
-                  <Link to="/customer/dashboard" className={`sidebar-nav-item ${location.pathname === '/customer/dashboard' ? 'active' : ''}`} onClick={onClose}>
-                    <LayoutDashboard size={16} /> My Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/orders" className={`sidebar-nav-item ${location.pathname === '/orders' ? 'active' : ''}`} onClick={onClose}>
-                    <Package size={16} /> My Orders
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/cart" className={`sidebar-nav-item ${location.pathname === '/cart' ? 'active' : ''}`} onClick={onClose}>
-                    <ShoppingCart size={16} /> Shopping Cart
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/addresses" className={`sidebar-nav-item ${location.pathname === '/addresses' ? 'active' : ''}`} onClick={onClose}>
-                    <MapPin size={16} /> Delivery Addresses
-                  </Link>
-                </li>
-              </>
-            )}
-
-            {user && role === 'SELLER' && (
-              <>
-                <li>
-                  <Link to="/seller/dashboard" className={`sidebar-nav-item ${location.pathname === '/seller/dashboard' ? 'active' : ''}`} onClick={onClose}>
-                    <LayoutDashboard size={16} /> Seller Portal
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/orders" className={`sidebar-nav-item ${location.pathname === '/orders' ? 'active' : ''}`} onClick={onClose}>
-                    <Package size={16} /> Received Orders
-                  </Link>
-                </li>
-              </>
-            )}
-
-            {user && role === 'EMPLOYEE' && (
-              <>
-                <li>
-                  <Link to="/employee/dashboard" className={`sidebar-nav-item ${location.pathname === '/employee/dashboard' ? 'active' : ''}`} onClick={onClose}>
-                    <LayoutDashboard size={16} /> Employee Portal
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/orders" className={`sidebar-nav-item ${location.pathname === '/orders' ? 'active' : ''}`} onClick={onClose}>
-                    <Package size={16} /> All Orders
-                  </Link>
-                </li>
-              </>
-            )}
-
-            {user && role === 'ADMIN' && (
-              <>
-                <li>
-                  <Link to="/admin/dashboard" className={`sidebar-nav-item ${location.pathname === '/admin/dashboard' ? 'active' : ''}`} onClick={onClose}>
-                    <ShieldAlert size={16} /> Admin Console
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/orders" className={`sidebar-nav-item ${location.pathname === '/orders' ? 'active' : ''}`} onClick={onClose}>
-                    <Package size={16} /> All Orders
-                  </Link>
-                </li>
-              </>
-            )}
-          </ul>
-        </div>
-
-        {/* Bottom Utility Items */}
-        <div className="sidebar-footer-menu">
-          {/* Dark / Light Mode Switch in Sidebar */}
-          <button
-            onClick={toggleTheme}
-            className="sidebar-bottom-item theme-switch"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          >
-            {theme === 'dark' ? (
-              <Sun size={15} color="var(--color-primary)" />
-            ) : (
-              <Moon size={15} color="var(--color-primary)" />
-            )}
-            <span>{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>
-          </button>
-
-          <Link
-            to={role === 'SELLER' ? '/seller/dashboard' : '/register'}
-            className="sidebar-bottom-item"
-            onClick={onClose}
-          >
-            <Percent size={15} color="var(--color-primary)" />
-            <span>Sell on JMART</span>
-          </Link>
-
-          <button
-            onClick={() => setShowHelp(true)}
-            className="sidebar-bottom-item"
-          >
-            <HelpCircle size={15} color="#8A8A8A" />
-            <span>Help</span>
-          </button>
-
-          {user ? (
-            <button onClick={handleLogout} className="sidebar-bottom-item logout">
-              <LogOut size={15} />
-              <span>Log Out</span>
-            </button>
-          ) : (
-            <Link to="/login" className="sidebar-bottom-item login" onClick={onClose}>
-              <LogIn size={15} />
-              <span>Sign In</span>
-            </Link>
-          )}
+              {/* Back to top button */}
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item back-to-top-btn"
+                  onClick={scrollToTop}
+                >
+                  <ArrowUp size={16} className="item-icon" />
+                  <span>Back to top</span>
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
       </aside>
 
-      {/* Backdrop for mobile */}
-      {isOpen && <div className="sidebar-mobile-backdrop" onClick={onClose}></div>}
-
-      {/* Help Modal */}
+      {/* Help & Support Modal */}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </>
   );
