@@ -9,7 +9,8 @@ import {
   requestShipping,
   markAsShipped,
   markAsDelivered,
-  getHistory
+  getHistory,
+  assignOrder
 } from '../controllers/orderController.js';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
@@ -28,6 +29,8 @@ router.post('/:id/seller-confirm', authorizeRoles('SELLER', 'ADMIN'), sellerConf
 router.post('/:id/request-shipping', authorizeRoles('SELLER', 'ADMIN'), requestShipping);
 router.post('/:id/mark-shipped', authorizeRoles('EMPLOYEE', 'ADMIN'), markAsShipped);
 router.post('/:id/mark-delivered', authorizeRoles('EMPLOYEE', 'ADMIN'), markAsDelivered);
+router.put('/:id/assign', authorizeRoles('EMPLOYEE', 'ADMIN'), assignOrder);
+router.post('/:id/assign', authorizeRoles('EMPLOYEE', 'ADMIN'), assignOrder);
 
 router.put('/:id/status', authorizeRoles('EMPLOYEE', 'SELLER', 'ADMIN'), updateOrderStatus);
 

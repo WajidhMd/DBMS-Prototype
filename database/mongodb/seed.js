@@ -14,7 +14,8 @@ import {
   sampleOrderItems,
   samplePayments,
   sampleReviews,
-  sampleOrderHistory
+  sampleOrderHistory,
+  sampleWishlists
 } from '../seedData.js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -34,7 +35,7 @@ async function seedMongoDB() {
       'categories', 'products', 'carts', 'cart_items',
       'orders', 'order_items', 'payments', 'reviews', 'order_history',
       'return_requests', 'return_items', 'return_status_history',
-      'notifications', 'feedback_moderation'
+      'notifications', 'feedback_moderation', 'wishlists'
     ];
 
     for (const name of collections) {
@@ -59,6 +60,9 @@ async function seedMongoDB() {
     await db.collection('reviews').insertMany(sampleReviews);
     if (sampleOrderHistory && sampleOrderHistory.length > 0) {
       await db.collection('order_history').insertMany(sampleOrderHistory);
+    }
+    if (sampleWishlists && sampleWishlists.length > 0) {
+      await db.collection('wishlists').insertMany(sampleWishlists);
     }
 
     console.log('✅ MongoDB database successfully seeded!');

@@ -1,6 +1,7 @@
 -- PostgreSQL DDL Schema for E-Commerce Management System
 
 -- Drop tables if existing (in reverse dependency order)
+DROP TABLE IF EXISTS wishlists CASCADE;
 DROP TABLE IF EXISTS feedback_moderation CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS return_status_history CASCADE;
@@ -71,7 +72,10 @@ CREATE TABLE employees (
     user_id VARCHAR(36) UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(120) NOT NULL UNIQUE,
-    phone VARCHAR(20) NOT NULL
+    phone VARCHAR(20) NOT NULL,
+    address TEXT,
+    department VARCHAR(100),
+    status VARCHAR(20) DEFAULT 'Active'
 );
 
 -- 5. Category Entity
@@ -120,7 +124,8 @@ CREATE TABLE orders (
     order_status VARCHAR(30) DEFAULT 'Pending',
     approx_delivery_date VARCHAR(50),
     courier_name VARCHAR(100),
-    tracking_number VARCHAR(100)
+    tracking_number VARCHAR(100),
+    assigned_employee_id VARCHAR(36) REFERENCES employees(employee_id) ON DELETE SET NULL
 );
 
 -- 10. Order Item (Order -> Product M:N Junction)
@@ -228,4 +233,13 @@ CREATE TABLE feedback_moderation (
     moderator VARCHAR(120) NOT NULL,
     reason TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 19. Wishlist Entity
+CREATE TABLE wishlists (
+    wishlist_id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    product_id VARCHAR(36) NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id)
 );

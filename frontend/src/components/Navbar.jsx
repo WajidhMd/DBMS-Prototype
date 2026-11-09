@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
 import { useTheme } from '../context/ThemeContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import api from '../services/api';
 import {
   Menu,
@@ -32,8 +34,8 @@ export default function Navbar({ onOpenSidebar }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
+  const { cartCount } = useCart();
+  const { wishlistCount } = useWishlist();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
   const [categories, setCategories] = useState([]);
@@ -41,40 +43,8 @@ export default function Navbar({ onOpenSidebar }) {
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
-    if (role === 'CUSTOMER') {
-      fetchCartCount();
-    }
     fetchCategories();
-    updateWishlistCount();
-
-    // Listen to custom wishlist update events
-    const handleWishlistChange = () => updateWishlistCount();
-    window.addEventListener('storage', handleWishlistChange);
-    window.addEventListener('jmart-wishlist-update', handleWishlistChange);
-
-    return () => {
-      window.removeEventListener('storage', handleWishlistChange);
-      window.removeEventListener('jmart-wishlist-update', handleWishlistChange);
-    };
-  }, [role, location.pathname, targetDb]);
-
-  const updateWishlistCount = () => {
-    try {
-      const items = JSON.parse(localStorage.getItem('jmart_wishlist') || '[]');
-      setWishlistCount(items.length);
-    } catch {
-      setWishlistCount(0);
-    }
-  };
-
-  const fetchCartCount = async () => {
-    try {
-      const res = await api.get('/cart');
-      setCartCount(res.data.items_total || 0);
-    } catch (err) {
-      setCartCount(0);
-    }
-  };
+  }, [location.pathname, targetDb]);
 
   const fetchCategories = async () => {
     try {
@@ -202,11 +172,15 @@ export default function Navbar({ onOpenSidebar }) {
 
         {/* Wishlist Heart Icon */}
         <Link
-          to="/products"
+          to="/wishlist"
           className="header-icon-btn wishlist-btn"
           title={`Wishlist (${wishlistCount} items)`}
         >
-          <Heart size={20} className={wishlistCount > 0 ? 'heart-has-items' : ''} />
+          <Heart
+            size={20}
+            className={wishlistCount > 0 ? 'heart-has-items' : ''}
+            fill={wishlistCount > 0 ? 'var(--color-primary)' : 'none'}
+          />
           {wishlistCount > 0 && <span className="wishlist-badge">{wishlistCount}</span>}
         </Link>
 

@@ -5,7 +5,13 @@ import {
   getSellers,
   getPayments,
   getUsers,
-  deleteUser
+  deleteUser,
+  getEmployees,
+  getEmployee,
+  createEmployee,
+  updateEmployee,
+  updateEmployeeStatus,
+  deleteEmployee
 } from '../controllers/adminController.js';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
@@ -19,6 +25,14 @@ router.delete('/users/:id', deleteUser);
 router.get('/customers', getCustomers);
 router.get('/sellers', getSellers);
 router.get('/payments', getPayments);
+
+// Employee Management
+router.get('/employees', getEmployees);
+router.get('/employees/:id', getEmployee);
+router.post('/employees', createEmployee);
+router.put('/employees/:id', updateEmployee);
+router.patch('/employees/:id/status', updateEmployeeStatus);
+router.delete('/employees/:id', deleteEmployee);
 
 export default router;
 

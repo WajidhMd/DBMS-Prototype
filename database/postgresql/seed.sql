@@ -26,8 +26,8 @@ INSERT INTO sellers (seller_id, user_id, name, email, phone) VALUES
 ('sell-002', 'usr-sell-002', 'FashionHub Apparel', 'fashionhub@seller.com', '+1-800-555-9988');
 
 -- 4b. Insert Employees
-INSERT INTO employees (employee_id, user_id, name, email, phone) VALUES
-('emp-001', 'usr-emp-001', 'Staff Member Alex', 'employee@ecommerce.com', '+1-555-0188');
+INSERT INTO employees (employee_id, user_id, name, email, phone, address, department, status) VALUES
+('emp-001', 'usr-emp-001', 'Staff Member Alex', 'employee@ecommerce.com', '+1-555-0188', '100 Logistics Hub, North Wing, CA 95054', 'Operations & Fulfillment', 'Active');
 
 -- 5. Insert Categories
 INSERT INTO categories (category_id, category_name, description) VALUES
@@ -197,3 +197,7 @@ INSERT INTO payments (payment_id, order_id, payment_mode, payment_status, amount
 INSERT INTO reviews (review_id, customer_id, product_id, rating, description, review_date) VALUES
 ('rev-001', 'cust-001', 'prod-001', 5, 'Outstanding audio quality and long battery life! Very comfortable for long hours.', '2026-02-15 11:30:00'),
 ('rev-002', 'cust-001', 'prod-005', 4, 'Very comfortable running shoes with decent arch support. Fits true to size.', '2026-02-16 10:15:00');
+
+-- 13. Insert Wishlists
+INSERT INTO wishlists (wishlist_id, user_id, product_id, created_at) VALUES
+('wsh-001', 'usr-cust-001', 'prod-001', '2026-01-05 10:00:00');

@@ -135,7 +135,19 @@ export const sampleEmployees = [
     user_id: 'usr-emp-001',
     name: 'Sample Employee',
     email: 'employee@ecommerce.com',
-    phone: '+1-800-555-0100'
+    phone: '+1-800-555-0100',
+    address: '100 Logistics Hub, North Wing, CA 95054',
+    department: 'Operations & Fulfillment',
+    status: 'Active'
+  }
+];
+
+export const sampleWishlists = [
+  {
+    wishlist_id: 'wsh-001',
+    user_id: 'usr-cust-001',
+    product_id: 'prod-001',
+    created_at: '2026-01-05 10:00:00'
   }
 ];
 
@@ -1490,7 +1502,8 @@ export const sampleOrders = [
     shipping_date: formatTs(nowMs - 6 * 86400000),
     approx_delivery_date: formatTs(nowMs - 5 * 86400000).substring(0, 10),
     order_amount: 27997.00,
-    order_status: 'DELIVERED'
+    order_status: 'DELIVERED',
+    assigned_employee_id: 'emp-001'
   },
   {
     order_id: 'ord-002',

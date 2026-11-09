@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
 import { useTheme } from '../context/ThemeContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import api from '../services/api';
 import {
   Lock,
@@ -28,7 +30,13 @@ export default function Login() {
   const { login } = useAuth();
   const { targetDb, setTargetDb } = useDb();
   const { theme, toggleTheme } = useTheme();
+  const { syncGuestCart } = useCart();
+  const { syncGuestWishlist } = useWishlist();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const redirectUrl = searchParams.get('redirect') || location.state?.from?.pathname || null;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,7 +69,15 @@ export default function Login() {
       } else if (role === 'SELLER') {
         navigate('/seller/dashboard');
       } else {
-        navigate('/customer/dashboard');
+        // Customer: synchronize guest cart and guest wishlist
+        await syncGuestCart();
+        await syncGuestWishlist();
+
+        if (redirectUrl) {
+          navigate(redirectUrl);
+        } else {
+          navigate('/customer/dashboard');
+        }
       }
     } catch (err) {
       console.error(err);
@@ -268,7 +284,7 @@ export default function Login() {
               <Info size={16} /> View Pre-configured Sample Accounts
             </button>
 
-            <Link to="/register" className="btn-aux-register">
+            <Link to={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}` : '/register'} className="btn-aux-register">
               <UserPlus size={16} /> Create New Account
             </Link>
           </div>

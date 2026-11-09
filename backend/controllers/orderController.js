@@ -3,7 +3,8 @@ import {
   getAllOrders,
   getOrderById as fetchOrderById,
   updateOrderStatus as modifyOrderStatus,
-  getOrderHistory as fetchOrderHistory
+  getOrderHistory as fetchOrderHistory,
+  assignOrderToEmployee
 } from '../services/dbAdapter.js';
 
 export async function createOrder(req, res) {
@@ -36,10 +37,36 @@ export async function getOrders(req, res) {
       filters.seller_id = req.user.ref_id;
     }
 
+    if (req.query.assigned_to_me === 'true' && req.user.role === 'EMPLOYEE') {
+      filters.assigned_employee_id = req.user.ref_id;
+    }
+    if (req.query.employee_id) {
+      filters.assigned_employee_id = req.query.employee_id;
+    }
+
     const orders = await getAllOrders(filters, req.dbType);
     return res.json(orders);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch orders list.' });
+  }
+}
+
+export async function assignOrder(req, res) {
+  try {
+    const orderId = req.params.id;
+    let employeeId = req.body.employee_id;
+    if (!employeeId && req.user.role === 'EMPLOYEE') {
+      employeeId = req.user.ref_id;
+    }
+    if (!employeeId) {
+      return res.status(400).json({ error: 'Employee ID is required.' });
+    }
+
+    const performedBy = req.user.email || req.user.role;
+    const order = await assignOrderToEmployee(orderId, employeeId, performedBy, req.dbType);
+    return res.json(order);
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Failed to assign order.' });
   }
 }
 

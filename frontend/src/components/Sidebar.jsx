@@ -39,7 +39,9 @@ import {
   Database,
   Sun,
   Moon,
-  ArrowUp
+  ArrowUp,
+  Heart,
+  UserCheck
 } from 'lucide-react';
 import HelpModal from './HelpModal';
 import './Sidebar.css';
@@ -691,6 +693,34 @@ export default function Sidebar({ isOpen, onClose }) {
                   >
                     <LogIn size={16} className="item-icon" />
                     <span>Sign in</span>
+                  </button>
+                </li>
+              )}
+
+              {/* Wishlist Link */}
+              <li>
+                <button
+                  type="button"
+                  className="sidebar-menu-item"
+                  onClick={() => handleNav('/wishlist')}
+                >
+                  <Heart size={16} className="item-icon" />
+                  <span>My Wishlist</span>
+                  <ChevronRight size={14} className="item-arrow" />
+                </button>
+              </li>
+
+              {/* Admin Employee Management link */}
+              {user && role === 'ADMIN' && (
+                <li>
+                  <button
+                    type="button"
+                    className="sidebar-menu-item"
+                    onClick={() => handleNav('/admin/dashboard?tab=employees')}
+                  >
+                    <UserCheck size={16} className="item-icon" />
+                    <span>Employee Management</span>
+                    <ChevronRight size={14} className="item-arrow" />
                   </button>
                 </li>
               )}

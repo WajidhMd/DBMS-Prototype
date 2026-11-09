@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import {
   User,
   Mail,
@@ -18,9 +20,15 @@ import {
 import './Login.css';
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, login } = useAuth();
   const { targetDb, setTargetDb } = useDb();
+  const { syncGuestCart } = useCart();
+  const { syncGuestWishlist } = useWishlist();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const redirectUrl = searchParams.get('redirect') || location.state?.from?.pathname || null;
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -74,11 +82,31 @@ export default function Register() {
     try {
       setLoading(true);
       await register(formData, targetDb);
-      setSuccessMsg(`Registration successful in ${targetDb.toUpperCase()} database! Redirecting to login...`);
 
+      if (formData.account_type === 'Customer') {
+        setSuccessMsg(`Registration successful! Setting up session in ${targetDb.toUpperCase()}...`);
+        try {
+          await login(formData.email, formData.password, targetDb);
+          await syncGuestCart();
+          await syncGuestWishlist();
+
+          setTimeout(() => {
+            if (redirectUrl) {
+              navigate(redirectUrl);
+            } else {
+              navigate('/customer/dashboard');
+            }
+          }, 900);
+          return;
+        } catch (loginErr) {
+          console.error('Auto login error:', loginErr);
+        }
+      }
+
+      setSuccessMsg(`Registration successful in ${targetDb.toUpperCase()} database! Redirecting to login...`);
       setTimeout(() => {
-        navigate('/login');
-      }, 1800);
+        navigate(redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login');
+      }, 1200);
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Please check your details.');
     } finally {
@@ -92,7 +120,7 @@ export default function Register() {
         <div className="auth-form-panel" style={{ padding: '2.5rem' }}>
           <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Link
-              to="/login"
+              to={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
