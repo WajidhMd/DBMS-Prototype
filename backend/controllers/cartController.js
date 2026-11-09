@@ -3,7 +3,8 @@ import {
   addToCart as addItemToCart,
   updateCartItemQuantity,
   removeFromCart as removeItemFromCart,
-  clearCart as emptyCart
+  clearCart as emptyCart,
+  mergeCartItems
 } from '../services/dbAdapter.js';
 
 export async function getCart(req, res) {
@@ -61,5 +62,17 @@ export async function clearCart(req, res) {
     return res.json(updatedCart);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to clear cart.' });
+  }
+}
+
+export async function syncCart(req, res) {
+  try {
+    const customerId = req.user.ref_id;
+    if (!customerId) return res.status(400).json({ error: 'Customer profile required for cart synchronization.' });
+    const { items } = req.body;
+    const updatedCart = await mergeCartItems(customerId, items || [], req.dbType);
+    return res.json(updatedCart);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to synchronize cart.' });
   }
 }

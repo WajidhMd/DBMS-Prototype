@@ -2,18 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import api from '../services/api';
-import { ShoppingBag, ShoppingCart, Star, ArrowLeft, CheckCircle, AlertCircle, MessageSquare, Edit2, Trash2 } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Star, ArrowLeft, CheckCircle, AlertCircle, MessageSquare, Edit2, Trash2, Heart, Plus, Minus } from 'lucide-react';
 
 export default function ProductDetails() {
   const { id } = useParams();
   const { user, role } = useAuth();
   const { targetDb } = useDb();
+  const { addToCart } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+  const [notification, setNotification] = useState(null);
 
   // Review Form state
   const [editingReviewId, setEditingReviewId] = useState(null);
@@ -43,19 +49,14 @@ export default function ProductDetails() {
   };
 
   const handleAddToCart = async () => {
-    if (!user) {
-      navigate('/login');
+    if (product.stock_qty <= 0) {
+      setNotification({ message: 'Product is currently out of stock.', type: 'error' });
       return;
     }
-    if (role !== 'CUSTOMER') {
-      alert('Only Customer accounts can add items to cart.');
-      return;
-    }
-    try {
-      await api.post('/cart', { product_id: product.product_id, quantity: 1 });
-      alert(`Added "${product.product_name}" to your cart!`);
-    } catch (err) {
-      alert('Failed to add item to cart.');
+    const res = await addToCart(product, quantity);
+    if (res.success) {
+      setNotification({ message: `Added ${quantity} × "${product.product_name}" to your cart!`, type: 'success' });
+      setTimeout(() => setNotification(null), 3500);
     }
   };
 
@@ -218,16 +219,96 @@ export default function ProductDetails() {
                 {product.stock_qty > 0 ? `In Stock (${product.stock_qty} available)` : 'Out of Stock'}
               </span>
             </div>
+
+            {/* Notification Banner */}
+            {notification && (
+              <div
+                style={{
+                  padding: '0.75rem 1rem',
+                  marginBottom: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: notification.type === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(21, 128, 61, 0.15)',
+                  border: `1px solid ${notification.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(21, 128, 61, 0.3)'}`,
+                  color: notification.type === 'error' ? '#f87171' : 'var(--color-success)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontSize: '0.88rem'
+                }}
+              >
+                {notification.type === 'error' ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
+                <span>{notification.message}</span>
+              </div>
+            )}
+
+            {/* Quantity Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Quantity:</span>
+              <div style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1 || product.stock_qty <= 0}
+                  style={{ padding: '0.4rem 0.75rem', background: 'transparent', color: 'var(--text-primary)', border: 'none', cursor: 'pointer' }}
+                  title="Decrease Quantity"
+                >
+                  <Minus size={13} />
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max={product.stock_qty || 99}
+                  value={quantity}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 1;
+                    setQuantity(Math.max(1, Math.min(val, product.stock_qty || 99)));
+                  }}
+                  style={{ width: '45px', textAlign: 'center', background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.9rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.min((product.stock_qty || 99), quantity + 1))}
+                  disabled={Boolean(product.stock_qty && quantity >= product.stock_qty) || product.stock_qty <= 0}
+                  style={{ padding: '0.4rem 0.75rem', background: 'transparent', color: 'var(--text-primary)', border: 'none', cursor: 'pointer' }}
+                  title="Increase Quantity"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+            </div>
           </div>
 
-          <button
-            onClick={handleAddToCart}
-            disabled={product.stock_qty <= 0}
-            className="btn-primary-block"
-            style={{ padding: '0.85rem' }}
-          >
-            <ShoppingCart size={18} /> Add to Cart
-          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', marginTop: '1rem' }}>
+            <button
+              onClick={handleAddToCart}
+              disabled={product.stock_qty <= 0}
+              className="btn-primary-block"
+              style={{ padding: '0.85rem', marginTop: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              <ShoppingCart size={18} /> Add to Cart
+            </button>
+
+            <button
+              onClick={() => toggleWishlist(product)}
+              style={{
+                padding: '0.85rem 1.15rem',
+                backgroundColor: isWishlisted(product.product_id) ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-card)',
+                border: `1px solid ${isWishlisted(product.product_id) ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                borderRadius: 'var(--radius-sm)',
+                color: isWishlisted(product.product_id) ? 'var(--color-primary)' : 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              title={isWishlisted(product.product_id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+            >
+              <Heart size={18} fill={isWishlisted(product.product_id) ? 'var(--color-primary)' : 'none'} color="var(--color-primary)" />
+              <span>{isWishlisted(product.product_id) ? 'Wishlisted' : 'Wishlist'}</span>
+            </button>
+          </div>
         </div>
       </div>
 

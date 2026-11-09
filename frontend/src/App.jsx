@@ -18,10 +18,12 @@ import CustomerDashboard from './pages/CustomerDashboard';
 import SellerDashboard from './pages/SellerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
+import Wishlist from './pages/Wishlist';
 
 // Protected Route Guard
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, role, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -32,7 +34,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    const returnUrl = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${returnUrl}`} state={{ from: location }} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
@@ -85,6 +88,8 @@ export default function App() {
               <Route path="/" element={<HomeRedirect />} />
               <Route path="/products" element={<Products />} />
               <Route path="/products/:id" element={<ProductDetails />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/wishlist" element={<Wishlist />} />
 
               {/* Customer Protected Routes */}
               <Route
@@ -92,14 +97,6 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['CUSTOMER']}>
                     <CustomerDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/cart"
-                element={
-                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
-                    <Cart />
                   </ProtectedRoute>
                 }
               />

@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { getPostgresPool, testPostgresConnection } from '../database/postgresql.js';
 import { getMongoDB, testMongoDBConnection } from '../database/mongodb.js';
 import {
@@ -14,7 +15,8 @@ import {
   sampleOrderItems,
   samplePayments,
   sampleReviews,
-  sampleOrderHistory
+  sampleOrderHistory,
+  sampleWishlists
 } from '../../database/seedData.js';
 
 // In-Memory Storage Instances for seamless demo mode per database target
@@ -43,7 +45,8 @@ function createSeedSnapshot() {
     return_items: [],
     return_status_history: [],
     notifications: [],
-    feedback_moderation: []
+    feedback_moderation: [],
+    wishlists: JSON.parse(JSON.stringify(sampleWishlists || []))
   };
 }
 
@@ -242,8 +245,17 @@ export async function createEmployee(empData, dbType = 'postgresql') {
   if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
     await pool.query(
-      'INSERT INTO employees (employee_id, user_id, name, email, phone) VALUES ($1, $2, $3, $4, $5)',
-      [empData.employee_id, empData.user_id, empData.name, empData.email, empData.phone]
+      'INSERT INTO employees (employee_id, user_id, name, email, phone, address, department, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [
+        empData.employee_id,
+        empData.user_id,
+        empData.name,
+        empData.email,
+        empData.phone,
+        empData.address || '',
+        empData.department || 'Operations',
+        empData.status || 'Active'
+      ]
     );
     return empData;
   }
@@ -260,6 +272,71 @@ export async function createEmployee(empData, dbType = 'postgresql') {
   return empData;
 }
 
+export async function createEmployeeWithUser(empData, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+
+  // Check email uniqueness
+  const existingUser = await findUserByEmail(empData.email, dbType);
+  if (existingUser) {
+    throw new Error(`An account with email ${empData.email} already exists.`);
+  }
+
+  const employeeId = empData.employee_id || `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+  const userId = `usr-emp-${Date.now()}`;
+  const passwordHash = await bcrypt.hash(empData.password || 'password123', 10);
+  const status = empData.status || 'Active';
+  const isActive = status === 'Active';
+
+  const userRecord = {
+    user_id: userId,
+    email: empData.email,
+    password_hash: passwordHash,
+    role: 'EMPLOYEE',
+    ref_id: employeeId,
+    is_active: isActive,
+    created_at: new Date().toISOString()
+  };
+
+  const employeeRecord = {
+    employee_id: employeeId,
+    user_id: userId,
+    name: empData.name,
+    email: empData.email,
+    phone: empData.phone,
+    address: empData.address || '',
+    department: empData.department || 'Operations & Fulfillment',
+    status: status
+  };
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    const pool = getPostgresPool();
+    await pool.query(
+      'INSERT INTO users (user_id, email, password_hash, role, ref_id, is_active, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())',
+      [userId, empData.email, passwordHash, 'EMPLOYEE', employeeId, isActive]
+    );
+    await pool.query(
+      'INSERT INTO employees (employee_id, user_id, name, email, phone, address, department, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [employeeId, userId, empData.name, empData.email, empData.phone, employeeRecord.address, employeeRecord.department, status]
+    );
+    return { ...employeeRecord, is_active: isActive };
+  }
+
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    const db = await getMongoDB();
+    await db.collection('users').insertOne(userRecord);
+    await db.collection('employees').insertOne(employeeRecord);
+    return { ...employeeRecord, is_active: isActive };
+  }
+
+  // Memory fallback
+  store.users.push(userRecord);
+  if (!store.employees) store.employees = JSON.parse(JSON.stringify(sampleEmployees || []));
+  store.employees.push(employeeRecord);
+
+  return { ...employeeRecord, is_active: isActive };
+}
+
 export async function getEmployeeById(employeeId, dbType = 'postgresql') {
   const normType = normalizeDbType(dbType);
   const store = getStore(dbType);
@@ -269,22 +346,196 @@ export async function getEmployeeById(employeeId, dbType = 'postgresql') {
 
   if (normType === 'postgresql' && await testPostgresConnection()) {
     const pool = getPostgresPool();
-    const res = await pool.query('SELECT * FROM employees WHERE employee_id = $1', [employeeId]);
+    const res = await pool.query(`
+      SELECT e.*, u.is_active, u.created_at as account_created
+      FROM employees e
+      LEFT JOIN users u ON e.user_id = u.user_id
+      WHERE e.employee_id = $1
+    `, [employeeId]);
     employee = res.rows[0] || null;
   } else if (normType === 'mongodb' && await testMongoDBConnection()) {
     const db = await getMongoDB();
-    employee = await db.collection('employees').findOne({ employee_id: employeeId });
+    const emp = await db.collection('employees').findOne({ employee_id: employeeId });
+    if (emp) {
+      const user = await db.collection('users').findOne({ $or: [{ ref_id: employeeId }, { user_id: emp.user_id }] });
+      employee = {
+        ...emp,
+        is_active: user ? (user.is_active !== false) : (emp.status !== 'Inactive'),
+        account_created: user?.created_at
+      };
+    }
   } else {
-    employee = store.employees.find(e => e.employee_id === employeeId) || null;
+    const emp = store.employees.find(e => e.employee_id === employeeId) || null;
+    if (emp) {
+      const user = store.users.find(u => u.ref_id === employeeId || u.user_id === emp.user_id);
+      employee = {
+        ...emp,
+        is_active: user ? (user.is_active !== false) : (emp.status !== 'Inactive'),
+        account_created: user?.created_at || '2026-01-01 08:00:00'
+      };
+    }
   }
 
   return employee;
 }
 
 export async function getAllEmployees(dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
   const store = getStore(dbType);
   if (!store.employees) store.employees = JSON.parse(JSON.stringify(sampleEmployees || []));
-  return store.employees;
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    const pool = getPostgresPool();
+    const res = await pool.query(`
+      SELECT e.*, u.is_active, u.created_at as account_created
+      FROM employees e
+      LEFT JOIN users u ON e.user_id = u.user_id
+      ORDER BY e.employee_id ASC
+    `);
+    return res.rows.map(r => ({
+      ...r,
+      status: r.status || (r.is_active === false ? 'Inactive' : 'Active')
+    }));
+  }
+
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    const db = await getMongoDB();
+    const emps = await db.collection('employees').find().toArray();
+    const users = await db.collection('users').find({ role: 'EMPLOYEE' }).toArray();
+    return emps.map(e => {
+      const u = users.find(usr => usr.user_id === e.user_id || usr.ref_id === e.employee_id);
+      return {
+        ...e,
+        is_active: u ? (u.is_active !== false) : (e.status !== 'Inactive'),
+        status: e.status || ((u && u.is_active === false) ? 'Inactive' : 'Active'),
+        account_created: u ? u.created_at : undefined
+      };
+    });
+  }
+
+  return store.employees.map(e => {
+    const u = store.users.find(usr => usr.user_id === e.user_id || usr.ref_id === e.employee_id);
+    return {
+      ...e,
+      address: e.address || '',
+      department: e.department || 'Operations & Fulfillment',
+      is_active: u ? (u.is_active !== false) : (e.status !== 'Inactive'),
+      status: e.status || ((u && u.is_active === false) ? 'Inactive' : 'Active'),
+      account_created: u ? u.created_at : '2026-01-01 08:00:00'
+    };
+  });
+}
+
+export async function updateEmployee(employeeId, updates, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+
+  const existing = await getEmployeeById(employeeId, dbType);
+  if (!existing) {
+    throw new Error(`Employee with ID ${employeeId} not found.`);
+  }
+
+  const updatedName = updates.name !== undefined ? updates.name : existing.name;
+  const updatedPhone = updates.phone !== undefined ? updates.phone : existing.phone;
+  const updatedAddress = updates.address !== undefined ? updates.address : (existing.address || '');
+  const updatedDept = updates.department !== undefined ? updates.department : (existing.department || 'Operations');
+  const updatedStatus = updates.status !== undefined ? updates.status : (existing.status || 'Active');
+  const isActive = updatedStatus === 'Active';
+
+  let newPasswordHash = null;
+  if (updates.password && updates.password.trim().length >= 6) {
+    newPasswordHash = await bcrypt.hash(updates.password.trim(), 10);
+  }
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    const pool = getPostgresPool();
+    await pool.query(`
+      UPDATE employees
+      SET name = $1, phone = $2, address = $3, department = $4, status = $5
+      WHERE employee_id = $6
+    `, [updatedName, updatedPhone, updatedAddress, updatedDept, updatedStatus, employeeId]);
+
+    if (newPasswordHash) {
+      await pool.query(
+        'UPDATE users SET password_hash = $1, is_active = $2 WHERE ref_id = $3 OR user_id = $4',
+        [newPasswordHash, isActive, employeeId, existing.user_id]
+      );
+    } else {
+      await pool.query(
+        'UPDATE users SET is_active = $1 WHERE ref_id = $2 OR user_id = $3',
+        [isActive, employeeId, existing.user_id]
+      );
+    }
+
+    return await getEmployeeById(employeeId, dbType);
+  }
+
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    const db = await getMongoDB();
+    await db.collection('employees').updateOne(
+      { employee_id: employeeId },
+      { $set: { name: updatedName, phone: updatedPhone, address: updatedAddress, department: updatedDept, status: updatedStatus } }
+    );
+    const userUpdate = { is_active: isActive };
+    if (newPasswordHash) userUpdate.password_hash = newPasswordHash;
+    await db.collection('users').updateOne(
+      { $or: [{ ref_id: employeeId }, { user_id: existing.user_id }] },
+      { $set: userUpdate }
+    );
+    return await getEmployeeById(employeeId, dbType);
+  }
+
+  // Memory fallback
+  const idx = store.employees.findIndex(e => e.employee_id === employeeId);
+  if (idx !== -1) {
+    store.employees[idx] = {
+      ...store.employees[idx],
+      name: updatedName,
+      phone: updatedPhone,
+      address: updatedAddress,
+      department: updatedDept,
+      status: updatedStatus
+    };
+  }
+
+  const uIdx = store.users.findIndex(u => u.ref_id === employeeId || u.user_id === existing.user_id);
+  if (uIdx !== -1) {
+    store.users[uIdx].is_active = isActive;
+    if (newPasswordHash) store.users[uIdx].password_hash = newPasswordHash;
+  }
+
+  return await getEmployeeById(employeeId, dbType);
+}
+
+export async function updateEmployeeStatus(employeeId, status, dbType = 'postgresql') {
+  return await updateEmployee(employeeId, { status }, dbType);
+}
+
+export async function deleteEmployee(employeeId, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+
+  const existing = await getEmployeeById(employeeId, dbType);
+  if (!existing) return false;
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    const pool = getPostgresPool();
+    await pool.query('DELETE FROM employees WHERE employee_id = $1', [employeeId]);
+    await pool.query('DELETE FROM users WHERE ref_id = $1 OR user_id = $2', [employeeId, existing.user_id]);
+    return true;
+  }
+
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    const db = await getMongoDB();
+    await db.collection('employees').deleteOne({ employee_id: employeeId });
+    await db.collection('users').deleteOne({ $or: [{ ref_id: employeeId }, { user_id: existing.user_id }] });
+    return true;
+  }
+
+  // Memory fallback
+  store.employees = store.employees.filter(e => e.employee_id !== employeeId);
+  store.users = store.users.filter(u => u.ref_id !== employeeId && u.user_id !== existing.user_id);
+  return true;
 }
 
 export async function getAllUsers(dbType = 'postgresql') {
@@ -567,6 +818,194 @@ export async function clearCart(customerId, dbType = 'postgresql') {
   return await getCartByCustomerId(customerId, dbType);
 }
 
+export async function mergeCartItems(customerId, items, dbType = 'postgresql') {
+  const store = getStore(dbType);
+  const cart = await getCartByCustomerId(customerId, dbType);
+  if (!Array.isArray(items) || items.length === 0) {
+    return cart;
+  }
+
+  const allProducts = await getAllProducts({}, dbType);
+
+  for (const item of items) {
+    if (!item.product_id) continue;
+    const prod = allProducts.find(p => p.product_id === item.product_id);
+    if (!prod || prod.is_active === false || (prod.stock_qty !== undefined && prod.stock_qty <= 0)) {
+      continue;
+    }
+
+    const requestedQty = Math.max(1, parseInt(item.quantity) || 1);
+    const existing = store.cart_item.find(ci => ci.cart_id === cart.cart_id && ci.product_id === item.product_id);
+
+    if (existing) {
+      const combinedQty = existing.quantity + requestedQty;
+      existing.quantity = prod.stock_qty ? Math.min(combinedQty, prod.stock_qty) : combinedQty;
+    } else {
+      const initialQty = prod.stock_qty ? Math.min(requestedQty, prod.stock_qty) : requestedQty;
+      store.cart_item.push({
+        cart_id: cart.cart_id,
+        product_id: item.product_id,
+        quantity: initialQty
+      });
+    }
+  }
+
+  return await getCartByCustomerId(customerId, dbType);
+}
+
+// ---------------------------------------------------
+// WISHLIST OPERATIONS
+// ---------------------------------------------------
+
+export async function getWishlistByUserId(userId, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+  if (!store.wishlists) store.wishlists = JSON.parse(JSON.stringify(sampleWishlists || []));
+
+  const allProducts = await getAllProducts({}, dbType);
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    const pool = getPostgresPool();
+    const res = await pool.query(`
+      SELECT w.*, p.product_name, p.brand, p.mrp, p.stock_qty, p.image_url, p.is_active, c.category_name
+      FROM wishlists w
+      JOIN products p ON w.product_id = p.product_id
+      LEFT JOIN categories c ON p.category_id = c.category_id
+      WHERE w.user_id = $1
+      ORDER BY w.created_at DESC
+    `, [userId]);
+
+    return res.rows.map(r => ({
+      wishlist_id: r.wishlist_id,
+      user_id: r.user_id,
+      product_id: r.product_id,
+      created_at: r.created_at,
+      product: {
+        product_id: r.product_id,
+        product_name: r.product_name,
+        brand: r.brand,
+        mrp: parseFloat(r.mrp),
+        stock_qty: r.stock_qty,
+        image_url: r.image_url,
+        is_active: r.is_active,
+        category_name: r.category_name
+      }
+    }));
+  }
+
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    const db = await getMongoDB();
+    const rows = await db.collection('wishlists').find({ user_id: userId }).sort({ created_at: -1 }).toArray();
+    return rows.map(w => {
+      const prod = allProducts.find(p => p.product_id === w.product_id);
+      return {
+        wishlist_id: w.wishlist_id,
+        user_id: w.user_id,
+        product_id: w.product_id,
+        created_at: w.created_at,
+        product: prod || null
+      };
+    });
+  }
+
+  // Memory fallback
+  const userItems = store.wishlists.filter(w => w.user_id === userId);
+  return userItems.map(w => {
+    const prod = allProducts.find(p => p.product_id === w.product_id);
+    return {
+      wishlist_id: w.wishlist_id,
+      user_id: w.user_id,
+      product_id: w.product_id,
+      created_at: w.created_at || new Date().toISOString(),
+      product: prod || null
+    };
+  });
+}
+
+export async function addToWishlist(userId, productId, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+  if (!store.wishlists) store.wishlists = JSON.parse(JSON.stringify(sampleWishlists || []));
+
+  const allProducts = await getAllProducts({}, dbType);
+  const prod = allProducts.find(p => p.product_id === productId);
+  if (!prod) {
+    throw new Error('Product not found.');
+  }
+
+  const wishlistId = `wsh-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const createdAt = new Date().toISOString();
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    const pool = getPostgresPool();
+    await pool.query(`
+      INSERT INTO wishlists (wishlist_id, user_id, product_id, created_at)
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT (user_id, product_id) DO NOTHING
+    `, [wishlistId, userId, productId]);
+    return await getWishlistByUserId(userId, dbType);
+  }
+
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    const db = await getMongoDB();
+    await db.collection('wishlists').updateOne(
+      { user_id: userId, product_id: productId },
+      { $setOnInsert: { wishlist_id: wishlistId, user_id: userId, product_id: productId, created_at: createdAt } },
+      { upsert: true }
+    );
+    return await getWishlistByUserId(userId, dbType);
+  }
+
+  // Memory fallback
+  const exists = store.wishlists.some(w => w.user_id === userId && w.product_id === productId);
+  if (!exists) {
+    store.wishlists.push({
+      wishlist_id: wishlistId,
+      user_id: userId,
+      product_id: productId,
+      created_at: createdAt
+    });
+  }
+
+  return await getWishlistByUserId(userId, dbType);
+}
+
+export async function removeFromWishlist(userId, productId, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+  if (!store.wishlists) store.wishlists = JSON.parse(JSON.stringify(sampleWishlists || []));
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    const pool = getPostgresPool();
+    await pool.query('DELETE FROM wishlists WHERE user_id = $1 AND product_id = $2', [userId, productId]);
+    return await getWishlistByUserId(userId, dbType);
+  }
+
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    const db = await getMongoDB();
+    await db.collection('wishlists').deleteOne({ user_id: userId, product_id: productId });
+    return await getWishlistByUserId(userId, dbType);
+  }
+
+  // Memory fallback
+  store.wishlists = store.wishlists.filter(w => !(w.user_id === userId && w.product_id === productId));
+  return await getWishlistByUserId(userId, dbType);
+}
+
+export async function syncWishlist(userId, productIds, dbType = 'postgresql') {
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return await getWishlistByUserId(userId, dbType);
+  }
+
+  for (const pid of productIds) {
+    if (pid) {
+      await addToWishlist(userId, pid, dbType);
+    }
+  }
+
+  return await getWishlistByUserId(userId, dbType);
+}
+
 // ---------------------------------------------------
 // ADDRESS OPERATIONS
 // ---------------------------------------------------
@@ -733,8 +1172,12 @@ export async function getAllOrders(filters = {}, dbType = 'postgresql') {
       .filter(h => h.order_id === ord.order_id)
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
+    const emp = (store.employees || []).find(e => e.employee_id === ord.assigned_employee_id);
+
     return {
       ...ord,
+      assigned_employee_id: ord.assigned_employee_id || null,
+      assigned_employee_name: emp ? emp.name : (ord.assigned_employee_name || null),
       customer_name: cust ? `${cust.first_name} ${cust.last_name}` : 'Customer',
       customer_email: cust ? cust.email : '',
       address: addr || null,
@@ -743,6 +1186,10 @@ export async function getAllOrders(filters = {}, dbType = 'postgresql') {
       history
     };
   });
+
+  if (filters.assigned_employee_id) {
+    list = list.filter(o => o.assigned_employee_id === filters.assigned_employee_id);
+  }
 
   if (filters.customer_id) {
     list = list.filter(o => o.customer_id === filters.customer_id);
@@ -769,6 +1216,26 @@ export async function getAllOrders(filters = {}, dbType = 'postgresql') {
 export async function getOrderById(orderId, dbType = 'postgresql') {
   const orders = await getAllOrders({}, dbType);
   return orders.find(o => o.order_id === orderId) || null;
+}
+
+export async function assignOrderToEmployee(orderId, employeeId, performedBy = 'Staff', dbType = 'postgresql') {
+  const store = getStore(dbType);
+  const ord = store.orders.find(o => o.order_id === orderId);
+  if (!ord) throw new Error('Order not found.');
+
+  const emp = (store.employees || []).find(e => e.employee_id === employeeId);
+  ord.assigned_employee_id = employeeId;
+  ord.assigned_employee_name = emp ? emp.name : employeeId;
+
+  await addOrderHistoryRecord({
+    order_id: orderId,
+    action: `Order Assigned to ${emp ? emp.name : employeeId}`,
+    performed_by: performedBy,
+    previous_status: ord.order_status,
+    new_status: ord.order_status
+  }, dbType);
+
+  return await getOrderById(orderId, dbType);
 }
 
 export async function updateOrderStatus(orderId, status, performedBy = 'System', dbType = 'postgresql') {
@@ -1447,6 +1914,7 @@ export async function getAdminStats(dbType = 'postgresql') {
 
   const totalCustomers = store.customers.length;
   const totalSellers = store.sellers.length;
+  const totalEmployees = (store.employees || []).length;
   const totalProducts = store.products.length;
   const totalOrders = store.orders.length;
   const pendingOrders = store.orders.filter(o => o.order_status === 'Pending').length;
@@ -1458,6 +1926,7 @@ export async function getAdminStats(dbType = 'postgresql') {
   return {
     totalCustomers,
     totalSellers,
+    totalEmployees,
     totalProducts,
     totalOrders,
     pendingOrders,

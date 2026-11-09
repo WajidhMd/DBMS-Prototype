@@ -1,60 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
-import api from '../services/api';
-import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ArrowLeft, LogIn, Info } from 'lucide-react';
 
 export default function Cart() {
   const { user } = useAuth();
   const { targetDb } = useDb();
+  const { cart, loading, updateQuantity, removeFromCart, clearCart } = useCart();
   const navigate = useNavigate();
 
-  const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchCart();
-  }, [targetDb]);
-
-  const fetchCart = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/cart');
-      setCart(res.data || null);
-    } catch (err) {
-      console.error('Failed to load cart:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleUpdateQty = async (productId, currentQty, delta) => {
-    const newQty = currentQty + delta;
-    try {
-      const res = await api.put(`/cart/${productId}`, { quantity: newQty });
-      setCart(res.data);
-    } catch (err) {
-      alert('Failed to update item quantity.');
-    }
+    await updateQuantity(productId, currentQty, delta);
   };
 
   const handleRemoveItem = async (productId) => {
-    try {
-      const res = await api.delete(`/cart/${productId}`);
-      setCart(res.data);
-    } catch (err) {
-      alert('Failed to remove item from cart.');
-    }
+    await removeFromCart(productId);
   };
 
   const handleClearCart = async () => {
     if (!window.confirm('Clear all items from your cart?')) return;
-    try {
-      const res = await api.delete('/cart/clear');
-      setCart(res.data);
-    } catch (err) {
-      alert('Failed to clear cart.');
+    await clearCart();
+  };
+
+  const handleProceedToCheckout = () => {
+    if (!user) {
+      navigate('/login?redirect=/checkout');
+    } else {
+      navigate('/checkout');
     }
   };
 
@@ -73,17 +47,52 @@ export default function Cart() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
             <span className={`badge badge-${targetDb}`}>TARGET: {targetDb.toUpperCase()}</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>M:N Junction: cart_item</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              {user ? 'Customer Cart (Database Associated)' : 'Guest Shopping Cart (Local Session)'}
+            </span>
           </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Shopping Cart</h1>
         </div>
 
         {items.length > 0 && (
-          <button onClick={handleClearCart} style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.4rem 0.85rem', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', fontWeight: 600 }}>
+          <button onClick={handleClearCart} style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.4rem 0.85rem', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
             Clear Cart
           </button>
         )}
       </div>
+
+      {/* Guest Shopping Notice */}
+      {!user && items.length > 0 && (
+        <div
+          style={{
+            padding: '0.85rem 1.25rem',
+            marginBottom: '1.5rem',
+            borderRadius: 'var(--radius-md)',
+            backgroundColor: 'rgba(212, 175, 55, 0.12)',
+            border: '1px solid rgba(212, 175, 55, 0.3)',
+            color: 'var(--text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            fontSize: '0.88rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Info size={17} color="var(--color-primary)" />
+            <span>
+              You are shopping as a <strong>Guest</strong>. You can review and adjust quantities here, and will sign in or register when proceeding to checkout.
+            </span>
+          </div>
+          <Link
+            to="/login?redirect=/checkout"
+            style={{ color: 'var(--color-primary)', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+          >
+            <LogIn size={14} /> Sign In Now
+          </Link>
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div style={{
@@ -197,9 +206,29 @@ export default function Cart() {
               <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-purple)' }}>₹{grandTotal.toFixed(2)}</strong>
             </div>
 
-            <Link to="/checkout" className="btn-primary-block" style={{ padding: '0.85rem' }}>
-              Proceed to Checkout <ArrowRight size={16} />
-            </Link>
+            <button
+              onClick={handleProceedToCheckout}
+              className="btn-primary-block"
+              style={{
+                padding: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                marginTop: 0
+              }}
+            >
+              {user ? (
+                <>
+                  Proceed to Checkout <ArrowRight size={16} />
+                </>
+              ) : (
+                <>
+                  <LogIn size={16} /> Proceed to Checkout (Sign In to Order)
+                </>
+              )}
+            </button>
 
             <Link to="/products" className="btn-secondary-outline" style={{ marginTop: '0.75rem' }}>
               <ArrowLeft size={16} /> Continue Shopping

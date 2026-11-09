@@ -4,7 +4,8 @@ import {
   addToCart,
   updateCartItem,
   removeFromCart,
-  clearCart
+  clearCart,
+  syncCart
 } from '../controllers/cartController.js';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
@@ -14,6 +15,7 @@ router.use(authenticateToken, authorizeRoles('CUSTOMER'));
 
 router.get('/', getCart);
 router.post('/', addToCart);
+router.post('/sync', syncCart);
 router.put('/:id', updateCartItem);
 router.delete('/clear', clearCart);
 router.delete('/:id', removeFromCart);

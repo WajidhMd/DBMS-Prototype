@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useCart } from '../context/CartContext';
 import api from '../services/api';
 import {
   Search,
@@ -62,8 +64,9 @@ export default function Products() {
   const [sortBy, setSortBy] = useState('');
   const [activePopularTile, setActivePopularTile] = useState(null);
 
-  // Wishlist state
-  const [wishlist, setWishlist] = useState([]);
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { addToCart } = useCart();
+  const [addedToast, setAddedToast] = useState(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -88,34 +91,7 @@ export default function Products() {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-    loadWishlist();
   }, [targetDb]);
-
-  const loadWishlist = () => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('jmart_wishlist') || '[]');
-      setWishlist(saved);
-    } catch {
-      setWishlist([]);
-    }
-  };
-
-  const toggleWishlist = (product) => {
-    let updated;
-    const exists = wishlist.some((item) => item.product_id === product.product_id);
-    if (exists) {
-      updated = wishlist.filter((item) => item.product_id !== product.product_id);
-    } else {
-      updated = [...wishlist, product];
-    }
-    setWishlist(updated);
-    localStorage.setItem('jmart_wishlist', JSON.stringify(updated));
-    window.dispatchEvent(new Event('jmart-wishlist-update'));
-  };
-
-  const isWishlisted = (productId) => {
-    return wishlist.some((item) => item.product_id === productId);
-  };
 
   const fetchProducts = async () => {
     try {
@@ -139,20 +115,14 @@ export default function Products() {
   };
 
   const handleAddToCart = async (product) => {
-    if (!user) {
-      navigate('/login');
+    if (product.stock_qty <= 0) {
+      alert('This product is currently out of stock.');
       return;
     }
-    if (role !== 'CUSTOMER') {
-      alert('Only Customer accounts can add items to cart.');
-      return;
-    }
-    try {
-      await api.post('/cart', { product_id: product.product_id, quantity: 1 });
-      alert(`Added "${product.product_name}" to your cart!`);
-      window.location.reload();
-    } catch (err) {
-      alert('Failed to add item to cart.');
+    const res = await addToCart(product, 1);
+    if (res.success) {
+      setAddedToast(`Added "${product.product_name}" to your cart!`);
+      setTimeout(() => setAddedToast(null), 3000);
     }
   };
 
@@ -395,6 +365,27 @@ export default function Products() {
 
       {/* 4. Hot deals 🔥 Catalog Section */}
       <section className="jmart-deals-section" ref={catalogSectionRef}>
+        {addedToast && (
+          <div
+            style={{
+              padding: '0.65rem 1.25rem',
+              marginBottom: '1rem',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'rgba(212, 175, 55, 0.15)',
+              border: '1px solid var(--color-primary)',
+              color: 'var(--color-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+          >
+            <span>{addedToast}</span>
+            <Link to="/cart" style={{ color: '#fff', fontWeight: 700, textDecoration: 'underline', marginLeft: '1rem', fontSize: '0.85rem' }}>
+              View Cart →
+            </Link>
+          </div>
+        )}
         <div className="section-header-row">
           <div className="deals-title-wrap">
             <h2 className="section-heading">Hot deals <span className="fire-icon">🔥</span></h2>

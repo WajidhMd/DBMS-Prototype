@@ -25,7 +25,8 @@ import {
   Flag,
   EyeOff,
   Eye,
-  AlertTriangle
+  AlertTriangle,
+  UserCheck
 } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
 import VisualTracker from '../components/VisualTracker';
@@ -51,6 +52,7 @@ export default function EmployeeDashboard() {
   const [moderationReason, setModerationReason] = useState('');
   const [activeModerationReview, setActiveModerationReview] = useState(null);
   const [moderationAction, setModerationAction] = useState(''); // 'flag' | 'hide'
+  const [assignmentFilter, setAssignmentFilter] = useState('all'); // 'all' | 'mine' | 'unassigned'
 
   useEffect(() => {
     fetchAllData();
@@ -71,6 +73,18 @@ export default function EmployeeDashboard() {
       console.error('Failed to load employee dashboard:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClaimOrder = async (orderId) => {
+    try {
+      setActionLoading(orderId);
+      await api.put(`/orders/${orderId}/assign`, {});
+      await fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to assign order to yourself.');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -219,6 +233,20 @@ export default function EmployeeDashboard() {
     ['RETURN_APPROVED', 'RETURN_SHIPPED', 'RETURN_IN_TRANSIT', 'RETURN_RECEIVED'].includes(r.return_status)
   );
 
+  const currentEmployeeId = user?.ref_id || user?.profile?.employee_id || '';
+  const myAssignedOrdersCount = orders.filter(o => o.assigned_employee_id && o.assigned_employee_id === currentEmployeeId).length;
+  const unassignedOrdersCount = orders.filter(o => !o.assigned_employee_id).length;
+
+  const filterByAssignment = (list) => {
+    if (assignmentFilter === 'mine') {
+      return list.filter(o => o.assigned_employee_id && o.assigned_employee_id === currentEmployeeId);
+    }
+    if (assignmentFilter === 'unassigned') {
+      return list.filter(o => !o.assigned_employee_id);
+    }
+    return list;
+  };
+
   const toggleExpand = (id) => {
     setExpandedOrder(expandedOrder === id ? null : id);
   };
@@ -271,10 +299,15 @@ export default function EmployeeDashboard() {
       {/* KPI Stats Row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
         gap: '1rem',
         marginBottom: '2rem'
       }}>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-md)', padding: '1rem', boxShadow: '0 0 10px rgba(212, 175, 55, 0.15)' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 600 }}>Assigned to You</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>{myAssignedOrdersCount}</div>
+        </div>
+
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>New Orders</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-amber)' }}>{pendingRequests.length}</div>
@@ -722,17 +755,89 @@ export default function EmployeeDashboard() {
       ) : (
         /* Orders Workflow Lists */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Assignment Filter Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            backgroundColor: 'var(--bg-card)',
+            padding: '0.75rem 1.25rem',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            marginBottom: '0.5rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+              <UserCheck size={16} style={{ color: 'var(--color-primary)' }} />
+              <span style={{ fontWeight: 600 }}>Filter Orders by Assignment:</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setAssignmentFilter('all')}
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '999px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  border: '1px solid var(--border-color)',
+                  cursor: 'pointer',
+                  backgroundColor: assignmentFilter === 'all' ? 'var(--color-primary)' : 'var(--bg-input)',
+                  color: assignmentFilter === 'all' ? '#000' : 'var(--text-secondary)'
+                }}
+              >
+                All Orders ({orders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignmentFilter('mine')}
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '999px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  border: '1px solid var(--border-color)',
+                  cursor: 'pointer',
+                  backgroundColor: assignmentFilter === 'mine' ? '#10b981' : 'var(--bg-input)',
+                  color: assignmentFilter === 'mine' ? '#fff' : 'var(--text-secondary)'
+                }}
+              >
+                Assigned to Me ({myAssignedOrdersCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignmentFilter('unassigned')}
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '999px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  border: '1px solid var(--border-color)',
+                  cursor: 'pointer',
+                  backgroundColor: assignmentFilter === 'unassigned' ? '#f59e0b' : 'var(--bg-input)',
+                  color: assignmentFilter === 'unassigned' ? '#000' : 'var(--text-secondary)'
+                }}
+              >
+                Unassigned ({unassignedOrdersCount})
+              </button>
+            </div>
+          </div>
+
           {activeTab === 'requests' && (
-            pendingRequests.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No pending order requests.</p>
+            filterByAssignment(pendingRequests).length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No pending order requests match the current filter.</p>
             ) : (
-              pendingRequests.map(ord => (
+              filterByAssignment(pendingRequests).map(ord => (
                 <OrderCard
                   key={ord.order_id}
                   ord={ord}
                   expanded={expandedOrder === ord.order_id}
                   onToggle={() => toggleExpand(ord.order_id)}
                   onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  currentEmployeeId={currentEmployeeId}
+                  onClaim={handleClaimOrder}
+                  actionLoading={actionLoading}
                   actionButton={
                     <button
                       onClick={() => handleForwardToSeller(ord.order_id)}
@@ -749,16 +854,19 @@ export default function EmployeeDashboard() {
           )}
 
           {activeTab === 'sent' && (
-            sentToSellerOrders.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No orders currently awaiting seller confirmation.</p>
+            filterByAssignment(sentToSellerOrders).length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No orders currently awaiting seller confirmation match filter.</p>
             ) : (
-              sentToSellerOrders.map(ord => (
+              filterByAssignment(sentToSellerOrders).map(ord => (
                 <OrderCard
                   key={ord.order_id}
                   ord={ord}
                   expanded={expandedOrder === ord.order_id}
                   onToggle={() => toggleExpand(ord.order_id)}
                   onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  currentEmployeeId={currentEmployeeId}
+                  onClaim={handleClaimOrder}
+                  actionLoading={actionLoading}
                   actionBadge={<span className="badge badge-cyan" style={{ backgroundColor: '#0284c7', color: '#fff' }}>Awaiting Seller Confirmation</span>}
                 />
               ))
@@ -766,16 +874,19 @@ export default function EmployeeDashboard() {
           )}
 
           {activeTab === 'confirmed' && (
-            confirmedOrders.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No seller-confirmed orders awaiting packing.</p>
+            filterByAssignment(confirmedOrders).length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No seller-confirmed orders match filter.</p>
             ) : (
-              confirmedOrders.map(ord => (
+              filterByAssignment(confirmedOrders).map(ord => (
                 <OrderCard
                   key={ord.order_id}
                   ord={ord}
                   expanded={expandedOrder === ord.order_id}
                   onToggle={() => toggleExpand(ord.order_id)}
                   onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  currentEmployeeId={currentEmployeeId}
+                  onClaim={handleClaimOrder}
+                  actionLoading={actionLoading}
                   actionBadge={<span className="badge badge-success" style={{ backgroundColor: 'var(--accent-purple)', color: '#fff' }}>Confirmed by Seller</span>}
                 />
               ))
@@ -783,16 +894,19 @@ export default function EmployeeDashboard() {
           )}
 
           {activeTab === 'shipped' && (
-            shippedOrders.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No orders currently in transit.</p>
+            filterByAssignment(shippedOrders).length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No orders currently in transit match filter.</p>
             ) : (
-              shippedOrders.map(ord => (
+              filterByAssignment(shippedOrders).map(ord => (
                 <OrderCard
                   key={ord.order_id}
                   ord={ord}
                   expanded={expandedOrder === ord.order_id}
                   onToggle={() => toggleExpand(ord.order_id)}
                   onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  currentEmployeeId={currentEmployeeId}
+                  onClaim={handleClaimOrder}
+                  actionLoading={actionLoading}
                   actionButton={
                     <button
                       onClick={() => handleMarkAsDelivered(ord.order_id)}
@@ -809,16 +923,19 @@ export default function EmployeeDashboard() {
           )}
 
           {activeTab === 'delivered' && (
-            deliveredOrders.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No delivered orders recorded yet.</p>
+            filterByAssignment(deliveredOrders).length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No delivered orders match filter.</p>
             ) : (
-              deliveredOrders.map(ord => (
+              filterByAssignment(deliveredOrders).map(ord => (
                 <OrderCard
                   key={ord.order_id}
                   ord={ord}
                   expanded={expandedOrder === ord.order_id}
                   onToggle={() => toggleExpand(ord.order_id)}
                   onInvoice={() => setSelectedInvoiceOrder(ord)}
+                  currentEmployeeId={currentEmployeeId}
+                  onClaim={handleClaimOrder}
+                  actionLoading={actionLoading}
                   actionBadge={<span className="badge badge-success" style={{ backgroundColor: '#10b981', color: '#fff' }}>Delivered to Customer</span>}
                 />
               ))
@@ -901,14 +1018,30 @@ export default function EmployeeDashboard() {
 }
 
 // Sub-component for Order Cards
-function OrderCard({ ord, expanded, onToggle, onInvoice, actionButton, actionBadge }) {
+function OrderCard({ ord, expanded, onToggle, onInvoice, actionButton, actionBadge, currentEmployeeId, onClaim, actionLoading }) {
+  const isAssignedToMe = Boolean(ord.assigned_employee_id && currentEmployeeId && ord.assigned_employee_id === currentEmployeeId);
+  const isUnassigned = !ord.assigned_employee_id;
+
   return (
     <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1.25rem 1.5rem', boxShadow: 'var(--shadow-card)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
             <strong style={{ fontSize: '1.1rem', color: 'var(--accent-purple)' }}>{ord.order_number}</strong>
             <span className="badge badge-success">{ord.order_status}</span>
+            {isAssignedToMe ? (
+              <span className="badge badge-success" style={{ backgroundColor: '#10b981', color: '#fff', fontSize: '0.72rem', fontWeight: 700 }}>
+                ✓ Assigned to You
+              </span>
+            ) : isUnassigned ? (
+              <span className="badge badge-warning" style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid #f59e0b', fontSize: '0.72rem' }}>
+                Unassigned
+              </span>
+            ) : (
+              <span className="badge badge-secondary" style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', fontSize: '0.72rem' }}>
+                Assigned: {ord.assigned_employee_name || ord.assigned_employee_id}
+              </span>
+            )}
           </div>
           <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <span>Customer: <strong>{ord.customer_name}</strong></span>
@@ -918,6 +1051,17 @@ function OrderCard({ ord, expanded, onToggle, onInvoice, actionButton, actionBad
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {isUnassigned && onClaim && (
+            <button
+              onClick={() => onClaim(ord.order_id)}
+              disabled={actionLoading === ord.order_id}
+              className="btn-secondary-outline"
+              style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+              title="Assign this order to yourself"
+            >
+              <UserCheck size={14} /> Assign to Me
+            </button>
+          )}
           <button onClick={onInvoice} className="btn-secondary-outline" style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
             <FileText size={14} /> Invoice
           </button>

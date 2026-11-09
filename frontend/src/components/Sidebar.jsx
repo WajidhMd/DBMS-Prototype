@@ -19,7 +19,9 @@ import {
   ChevronRight,
   Database,
   Sun,
-  Moon
+  Moon,
+  Heart,
+  UserCheck
 } from 'lucide-react';
 import HelpModal from './HelpModal';
 import './Sidebar.css';
@@ -145,6 +147,16 @@ export default function Sidebar({ isOpen, onClose }) {
                 <ShoppingBag size={16} /> Products Catalog
               </Link>
             </li>
+            <li>
+              <Link to="/cart" className={`sidebar-nav-item ${location.pathname === '/cart' ? 'active' : ''}`} onClick={onClose}>
+                <ShoppingCart size={16} /> Shopping Cart
+              </Link>
+            </li>
+            <li>
+              <Link to="/wishlist" className={`sidebar-nav-item ${location.pathname === '/wishlist' ? 'active' : ''}`} onClick={onClose}>
+                <Heart size={16} /> My Wishlist
+              </Link>
+            </li>
 
             {user && role === 'CUSTOMER' && (
               <>
@@ -156,11 +168,6 @@ export default function Sidebar({ isOpen, onClose }) {
                 <li>
                   <Link to="/orders" className={`sidebar-nav-item ${location.pathname === '/orders' ? 'active' : ''}`} onClick={onClose}>
                     <Package size={16} /> My Orders
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/cart" className={`sidebar-nav-item ${location.pathname === '/cart' ? 'active' : ''}`} onClick={onClose}>
-                    <ShoppingCart size={16} /> Shopping Cart
                   </Link>
                 </li>
                 <li>
@@ -204,8 +211,13 @@ export default function Sidebar({ isOpen, onClose }) {
             {user && role === 'ADMIN' && (
               <>
                 <li>
-                  <Link to="/admin/dashboard" className={`sidebar-nav-item ${location.pathname === '/admin/dashboard' ? 'active' : ''}`} onClick={onClose}>
+                  <Link to="/admin/dashboard" className={`sidebar-nav-item ${location.pathname === '/admin/dashboard' && !location.search.includes('tab=employees') ? 'active' : ''}`} onClick={onClose}>
                     <ShieldAlert size={16} /> Admin Console
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/admin/dashboard?tab=employees" className={`sidebar-nav-item ${location.search.includes('tab=employees') ? 'active' : ''}`} onClick={onClose}>
+                    <UserCheck size={16} /> Employee Management
                   </Link>
                 </li>
                 <li>
