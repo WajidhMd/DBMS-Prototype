@@ -14,6 +14,7 @@ import returnRoutes from './routes/returnRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
+import logisticsRoutes from './routes/logisticsRoutes.js';
 import { getAllCustomers, getAllSellers } from './services/dbAdapter.js';
 
 dotenv.config();
@@ -40,6 +41,7 @@ app.use('/api/addresses', addressRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/logistics', logisticsRoutes);
 
 app.get('/api/customers', async (req, res) => {
   try {

@@ -10,7 +10,9 @@ import {
   markAsShipped,
   markAsDelivered,
   getHistory,
-  assignOrder
+  assignOrder,
+  cancelOrder,
+  exchangeOrder
 } from '../controllers/orderController.js';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
@@ -22,6 +24,10 @@ router.post('/', authorizeRoles('CUSTOMER', 'ADMIN'), createOrder);
 router.get('/', getOrders);
 router.get('/:id', getOrderById);
 router.get('/:id/history', getHistory);
+
+// Customer Post-Purchase Lifecycle: Cancellation & Exchange
+router.post('/:id/cancel', authorizeRoles('CUSTOMER', 'ADMIN'), cancelOrder);
+router.post('/:id/exchange', authorizeRoles('CUSTOMER', 'ADMIN'), exchangeOrder);
 
 // Specific Workflow Action Routes
 router.post('/:id/forward', authorizeRoles('EMPLOYEE', 'ADMIN'), forwardToSeller);

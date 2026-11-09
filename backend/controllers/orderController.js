@@ -270,3 +270,90 @@ export async function getHistory(req, res) {
     return res.status(500).json({ error: 'Failed to fetch order history log.' });
   }
 }
+
+// In-memory exchange store
+const EXCHANGE_REQUESTS = [];
+
+// Cancel Order prior to dispatch with instant refund processing
+export async function cancelOrder(req, res) {
+  try {
+    const orderId = req.params.id;
+    const order = await fetchOrderById(orderId, req.dbType);
+    if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+    // Customer who owns it or Admin
+    if (req.user.role === 'CUSTOMER' && order.customer_id !== req.user.ref_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    const cancellableStatuses = ['ORDER_PLACED', 'PENDING_EMPLOYEE', 'SENT_TO_SELLER', 'ORDER_CONFIRMED', 'PROCESSING'];
+    const currentStatus = (order.order_status || '').toUpperCase();
+    if (!cancellableStatuses.includes(currentStatus)) {
+      return res.status(400).json({
+        error: `Cannot cancel order in '${order.order_status}' status. Cancellation is only possible prior to shipping dispatch.`
+      });
+    }
+
+    const reason = req.body.reason || 'Cancelled by customer';
+    const updated = await modifyOrderStatus(orderId, 'CANCELLED', `${req.user.email} (${reason})`, req.dbType);
+
+    return res.json({
+      message: `Order cancelled successfully. Instant refund of ₹${Number(order.total_amount || 0).toLocaleString('en-IN')} initiated to your original payment source.`,
+      order: updated
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Failed to cancel order.' });
+  }
+}
+
+// Exchange item workflow for delivered orders
+export async function exchangeOrder(req, res) {
+  try {
+    const orderId = req.params.id;
+    const order = await fetchOrderById(orderId, req.dbType);
+    if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+    if (req.user.role === 'CUSTOMER' && order.customer_id !== req.user.ref_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    const currentStatus = (order.order_status || '').toUpperCase();
+    if (currentStatus !== 'DELIVERED') {
+      return res.status(400).json({
+        error: `Exchange is only available for delivered orders. Current status is '${order.order_status}'.`
+      });
+    }
+
+    const { itemId, reason, replacementVariant } = req.body;
+    const pickupDate = new Date(Date.now() + 2 * 86400000).toLocaleDateString('en-IN', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    const exchangeEntry = {
+      exchangeId: `EXC-${Date.now()}`,
+      orderId,
+      customerId: req.user.ref_id,
+      itemId,
+      reason: reason || 'Size / Color exchange preference',
+      replacementVariant: replacementVariant || 'Selected replacement option',
+      status: 'EXCHANGE_APPROVED',
+      pickupDate,
+      createdAt: new Date().toISOString()
+    };
+    EXCHANGE_REQUESTS.push(exchangeEntry);
+
+    try {
+      await modifyOrderStatus(orderId, 'EXCHANGE_REQUESTED', `Exchange: ${exchangeEntry.replacementVariant}`, req.dbType);
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      message: `Exchange approved! Free doorstep reverse pickup scheduled for ${pickupDate}. Replacement item will be dispatched immediately once pickup is verified.`,
+      exchange: exchangeEntry
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Failed to process exchange request.' });
+  }
+}

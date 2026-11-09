@@ -1,15 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
 import { useCart } from '../context/CartContext';
-import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ArrowLeft, LogIn, Info } from 'lucide-react';
+import api from '../services/api';
+import {
+  ShoppingCart,
+  Trash2,
+  Plus,
+  Minus,
+  ArrowRight,
+  ArrowLeft,
+  LogIn,
+  Info,
+  Bookmark,
+  Tag,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
 
 export default function Cart() {
   const { user } = useAuth();
   const { targetDb } = useDb();
-  const { cart, loading, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cart, loading, updateQuantity, removeFromCart, clearCart, addToCart } = useCart();
   const navigate = useNavigate();
+
+  // Save for Later State (persisted in localStorage)
+  const [savedForLater, setSavedForLater] = useState([]);
+
+  // Coupon State
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponMsg, setCouponMsg] = useState({ text: '', type: '' });
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('jmart_saved_for_later') || '[]');
+      setSavedForLater(stored);
+    } catch (_) {}
+
+    // Load any previously applied coupon
+    try {
+      const storedCoupon = JSON.parse(sessionStorage.getItem('jmart_applied_coupon') || 'null');
+      if (storedCoupon) setAppliedCoupon(storedCoupon);
+    } catch (_) {}
+  }, []);
 
   const handleUpdateQty = async (productId, currentQty, delta) => {
     await updateQuantity(productId, currentQty, delta);
@@ -22,6 +58,79 @@ export default function Cart() {
   const handleClearCart = async () => {
     if (!window.confirm('Clear all items from your cart?')) return;
     await clearCart();
+    setAppliedCoupon(null);
+    sessionStorage.removeItem('jmart_applied_coupon');
+  };
+
+  // Move item from active cart to Saved for Later
+  const handleSaveForLater = async (item) => {
+    const itemToSave = {
+      product_id: item.product_id,
+      product_name: item.product?.product_name || 'Product',
+      brand: item.product?.brand || 'Brand',
+      mrp: item.unit_price,
+      image_url: item.product?.image_url || '',
+      quantity: item.quantity
+    };
+
+    const updated = [itemToSave, ...savedForLater.filter(s => s.product_id !== item.product_id)];
+    setSavedForLater(updated);
+    localStorage.setItem('jmart_saved_for_later', JSON.stringify(updated));
+
+    await removeFromCart(item.product_id);
+  };
+
+  // Move saved item back to active cart
+  const handleMoveToCart = async (savedItem) => {
+    await addToCart({
+      product_id: savedItem.product_id,
+      product_name: savedItem.product_name,
+      mrp: savedItem.mrp,
+      image_url: savedItem.image_url,
+      stock_qty: 10
+    }, savedItem.quantity || 1);
+
+    const updated = savedForLater.filter(s => s.product_id !== savedItem.product_id);
+    setSavedForLater(updated);
+    localStorage.setItem('jmart_saved_for_later', JSON.stringify(updated));
+  };
+
+  const handleRemoveSaved = (productId) => {
+    const updated = savedForLater.filter(s => s.product_id !== productId);
+    setSavedForLater(updated);
+    localStorage.setItem('jmart_saved_for_later', JSON.stringify(updated));
+  };
+
+  // Coupon Code Validation
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+
+    try {
+      setCouponLoading(true);
+      setCouponMsg({ text: '', type: '' });
+      const res = await api.post('/cart/coupon', {
+        code: couponCode.trim(),
+        cartTotal: cart?.grand_total || 0
+      });
+
+      setAppliedCoupon(res.data);
+      sessionStorage.setItem('jmart_applied_coupon', JSON.stringify(res.data));
+      setCouponMsg({ text: `Coupon '${res.data.code}' applied successfully! Saved ₹${res.data.discountAmount}`, type: 'success' });
+    } catch (err) {
+      setCouponMsg({ text: err.response?.data?.error || 'Invalid coupon code.', type: 'error' });
+      setAppliedCoupon(null);
+      sessionStorage.removeItem('jmart_applied_coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponMsg({ text: '', type: '' });
+    sessionStorage.removeItem('jmart_applied_coupon');
   };
 
   const handleProceedToCheckout = () => {
@@ -38,11 +147,13 @@ export default function Cart() {
 
   const items = cart?.items || [];
   const itemsTotal = cart?.items_total || 0;
-  const grandTotal = cart?.grand_total || 0;
+  const rawGrandTotal = cart?.grand_total || 0;
+  const discount = appliedCoupon?.discountAmount || 0;
+  const finalPayable = Math.max(0, rawGrandTotal - discount);
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '3rem', maxWidth: '1000px', margin: '0 auto' }}>
-      {/* Title */}
+    <div className="animate-fade-in" style={{ paddingBottom: '3rem', maxWidth: '1050px', margin: '0 auto' }}>
+      {/* Title Header */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -100,19 +211,20 @@ export default function Cart() {
           border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-lg)',
           padding: '4rem 1rem',
-          textAlign: 'center'
+          textAlign: 'center',
+          marginBottom: '2rem'
         }}>
-          <ShoppingCart size={50} style={{ opacity: 0.4, marginBottom: '1rem' }} />
+          <ShoppingCart size={50} style={{ opacity: 0.4, marginBottom: '1rem', color: 'var(--color-primary)' }} />
           <h2>Your Cart is Currently Empty</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0.5rem 0 1.5rem' }}>
-            Explore our product catalog and add items to your cart.
+            Explore our luxury catalog and add products to your cart.
           </p>
           <Link to="/products" className="btn-primary-block" style={{ width: 'auto', display: 'inline-flex', padding: '0.65rem 1.5rem' }}>
             Browse Catalog
           </Link>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.75rem', marginBottom: '2.5rem' }}>
           {/* Cart Table */}
           <div style={{
             backgroundColor: 'var(--bg-card)',
@@ -128,7 +240,7 @@ export default function Cart() {
                     <th style={{ padding: '0.75rem 0.5rem' }}>Price</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Quantity</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Subtotal</th>
-                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Action</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -142,35 +254,48 @@ export default function Cart() {
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>
-                        ₹{parseFloat(item.unit_price).toFixed(2)}
+                        ₹{parseFloat(item.unit_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
                           <button
                             onClick={() => handleUpdateQty(item.product_id, item.quantity, -1)}
-                            style={{ padding: '0.25rem 0.5rem', background: 'transparent', color: 'var(--text-primary)' }}
+                            style={{ padding: '0.25rem 0.5rem', background: 'transparent', color: 'var(--text-primary)', border: 'none', cursor: 'pointer' }}
                           >
                             <Minus size={12} />
                           </button>
                           <span style={{ padding: '0 0.5rem', fontWeight: 700, fontSize: '0.88rem' }}>{item.quantity}</span>
                           <button
                             onClick={() => handleUpdateQty(item.product_id, item.quantity, 1)}
-                            style={{ padding: '0.25rem 0.5rem', background: 'transparent', color: 'var(--text-primary)' }}
+                            style={{ padding: '0.25rem 0.5rem', background: 'transparent', color: 'var(--text-primary)', border: 'none', cursor: 'pointer' }}
                           >
                             <Plus size={12} />
                           </button>
                         </div>
                       </td>
 
-                      <td style={{ padding: '1rem 0.5rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                        ₹{parseFloat(item.subtotal).toFixed(2)}
+                      <td style={{ padding: '1rem 0.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                        ₹{parseFloat(item.subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>
-                        <button onClick={() => handleRemoveItem(item.product_id)} style={{ background: 'transparent', color: '#f87171' }} title="Remove Item">
-                          <Trash2 size={16} />
-                        </button>
+                        <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <button
+                            onClick={() => handleSaveForLater(item)}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem' }}
+                            title="Save for Later"
+                          >
+                            <Bookmark size={14} color="var(--color-primary)" /> Save
+                          </button>
+                          <button
+                            onClick={() => handleRemoveItem(item.product_id)}
+                            style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer' }}
+                            title="Remove Item"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -179,7 +304,7 @@ export default function Cart() {
             </div>
           </div>
 
-          {/* Cart Summary Sidebar */}
+          {/* Cart Summary Sidebar & Coupon Box */}
           <div style={{
             backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
@@ -189,21 +314,114 @@ export default function Cart() {
           }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem' }}>Order Summary</h3>
 
+            {/* Promo Coupon Form */}
+            <div style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--border-color)' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.45rem', color: 'var(--color-primary)' }}>
+                <Tag size={14} /> Apply Promo Code
+              </label>
+
+              {appliedCoupon ? (
+                <div style={{
+                  background: 'rgba(34, 197, 94, 0.12)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#22c55e', fontSize: '0.85rem' }}>
+                      {appliedCoupon.code} Applied
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      {appliedCoupon.description}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleRemoveCoupon}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '0.4rem' }}>
+                  <input
+                    type="text"
+                    placeholder="e.g. JMART20 or GOLD500"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    style={{
+                      flex: 1,
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      padding: '0.4rem 0.65rem',
+                      borderRadius: '4px',
+                      fontSize: '0.82rem',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={couponLoading || !couponCode.trim()}
+                    style={{
+                      background: 'var(--color-primary)',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '0.4rem 0.85rem',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {couponLoading ? '...' : 'Apply'}
+                  </button>
+                </form>
+              )}
+
+              {couponMsg.text && (
+                <div style={{
+                  fontSize: '0.75rem',
+                  marginTop: '0.4rem',
+                  color: couponMsg.type === 'error' ? '#ef4444' : '#22c55e'
+                }}>
+                  {couponMsg.text}
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              <span>Total Items (Derived):</span>
+              <span>Items Total:</span>
               <strong style={{ color: 'var(--text-primary)' }}>{itemsTotal} items</strong>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              <span>Shipping & Delivery:</span>
+              <span>Subtotal:</span>
+              <strong style={{ color: 'var(--text-primary)' }}>₹{rawGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+            </div>
+
+            {discount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.9rem', color: '#22c55e' }}>
+                <span>Coupon Discount ({appliedCoupon.code}):</span>
+                <strong>- ₹{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+              <span>Shipping & Handling:</span>
               <span className="badge badge-success">FREE</span>
             </div>
 
             <hr style={{ border: 0, height: '1px', background: 'var(--border-color)', margin: '1rem 0' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-              <span style={{ fontSize: '1rem', fontWeight: 700 }}>Grand Total (Derived):</span>
-              <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-purple)' }}>₹{grandTotal.toFixed(2)}</strong>
+              <span style={{ fontSize: '1rem', fontWeight: 700 }}>Total Payable:</span>
+              <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                ₹{finalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </strong>
             </div>
 
             <button
@@ -225,7 +443,7 @@ export default function Cart() {
                 </>
               ) : (
                 <>
-                  <LogIn size={16} /> Proceed to Checkout (Sign In to Order)
+                  <LogIn size={16} /> Proceed to Checkout (Sign In)
                 </>
               )}
             </button>
@@ -233,6 +451,82 @@ export default function Cart() {
             <Link to="/products" className="btn-secondary-outline" style={{ marginTop: '0.75rem' }}>
               <ArrowLeft size={16} /> Continue Shopping
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Save for Later Section */}
+      {savedForLater.length > 0 && (
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.5rem',
+          marginTop: '1.5rem'
+        }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <Bookmark size={18} color="var(--color-primary)" /> Saved for Later ({savedForLater.length} items)
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+            {savedForLater.map(item => (
+              <div
+                key={item.product_id}
+                style={{
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1rem',
+                  display: 'flex',
+                  gap: '0.85rem'
+                }}
+              >
+                {item.image_url && (
+                  <img src={item.image_url} alt={item.product_name} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', background: '#111' }} />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.product_name}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.brand}</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-primary)', margin: '0.3rem 0' }}>
+                    ₹{parseFloat(item.mrp).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <button
+                      onClick={() => handleMoveToCart(item)}
+                      style={{
+                        background: 'var(--color-primary)',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '0.3rem 0.65rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Move to Cart
+                    </button>
+                    <button
+                      onClick={() => handleRemoveSaved(item.product_id)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid var(--border-color)',
+                        color: '#f87171',
+                        borderRadius: '4px',
+                        padding: '0.3rem 0.65rem',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

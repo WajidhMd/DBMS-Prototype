@@ -5,11 +5,15 @@ import {
   updateCartItem,
   removeFromCart,
   clearCart,
-  syncCart
+  syncCart,
+  validateCoupon
 } from '../controllers/cartController.js';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Public / Guest coupon validation
+router.post('/coupon', validateCoupon);
 
 router.use(authenticateToken, authorizeRoles('CUSTOMER'));
 

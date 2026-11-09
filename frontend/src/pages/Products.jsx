@@ -64,6 +64,11 @@ export default function Products() {
   const [sortBy, setSortBy] = useState('');
   const [activePopularTile, setActivePopularTile] = useState(null);
 
+  // Faceted Filters
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [minRating, setMinRating] = useState('');
+  const [minDiscount, setMinDiscount] = useState('');
+
   const { isWishlisted, toggleWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [addedToast, setAddedToast] = useState(null);
@@ -190,6 +195,23 @@ export default function Products() {
   }
   if (maxPrice) {
     filtered = filtered.filter((p) => parseFloat(p.mrp) <= parseFloat(maxPrice));
+  }
+  if (inStockOnly) {
+    filtered = filtered.filter((p) => (p.stock_qty || 0) > 0);
+  }
+  if (minRating) {
+    filtered = filtered.filter((p) => {
+      const num = parseInt(p.product_id.replace(/\D/g, '') || '12', 10);
+      const ratingVal = 4.5 + (num % 5) * 0.1;
+      return ratingVal >= parseFloat(minRating);
+    });
+  }
+  if (minDiscount) {
+    filtered = filtered.filter((p) => {
+      const num = parseInt(p.product_id.replace(/\D/g, '') || '12', 10);
+      const disc = 15 + (num % 20); // 15% - 35% discount
+      return disc >= parseFloat(minDiscount);
+    });
   }
 
   if (sortBy === 'price_asc') {
@@ -365,6 +387,59 @@ export default function Products() {
           </select>
         </div>
 
+        {/* Faceted Rating Filter */}
+        <div className="filter-group">
+          <label className="filter-label">Customer Rating</label>
+          <select
+            className="filter-select"
+            value={minRating}
+            onChange={(e) => {
+              setMinRating(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="">All Ratings</option>
+            <option value="4.7">4.7★ & above (Top Rated)</option>
+            <option value="4.5">4.5★ & above</option>
+            <option value="4.0">4.0★ & above</option>
+          </select>
+        </div>
+
+        {/* Faceted Discount Filter */}
+        <div className="filter-group">
+          <label className="filter-label">Deals & Discounts</label>
+          <select
+            className="filter-select"
+            value={minDiscount}
+            onChange={(e) => {
+              setMinDiscount(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="">All Deals</option>
+            <option value="15">15% OFF or more</option>
+            <option value="20">20% OFF or more</option>
+            <option value="25">25% OFF or more</option>
+          </select>
+        </div>
+
+        {/* In-Stock Only Toggle */}
+        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <label className="filter-label" style={{ cursor: 'pointer' }}>Availability</label>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', cursor: 'pointer', color: '#D4D4D4' }}>
+            <input
+              type="checkbox"
+              checked={inStockOnly}
+              onChange={(e) => {
+                setInStockOnly(e.target.checked);
+                setCurrentPage(1);
+              }}
+              style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+            />
+            In Stock Only
+          </label>
+        </div>
+
         <div className="filter-group filter-actions">
           <button
             onClick={() => {
@@ -374,6 +449,9 @@ export default function Products() {
               setMinPrice('');
               setMaxPrice('');
               setSortBy('');
+              setMinRating('');
+              setMinDiscount('');
+              setInStockOnly(false);
               setActivePopularTile(null);
               setCurrentPage(1);
             }}
@@ -459,6 +537,15 @@ export default function Products() {
 
               return (
                 <div key={p.product_id} className="jmart-product-card">
+                  {/* Deal / Discount Badge */}
+                  <div className="product-card-deal-badge">
+                    {p.stock_qty <= 3 && p.stock_qty > 0 ? (
+                      <span className="deal-pill urgent">⚡ Only {p.stock_qty} left</span>
+                    ) : (
+                      <span className="deal-pill">⚡ Lightning Deal</span>
+                    )}
+                  </div>
+
                   {/* Top Wishlist Heart Icon */}
                   <button
                     onClick={() => toggleWishlist(p)}

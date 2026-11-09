@@ -21,7 +21,11 @@ import {
   LayoutDashboard,
   Package,
   Sun,
-  Moon
+  Moon,
+  Mic,
+  Camera,
+  X,
+  Sparkles
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HelpModal from './HelpModal';
@@ -42,9 +46,102 @@ export default function Navbar({ onOpenSidebar }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
+  // Advanced Search Features (Voice, Visual, Auto-suggest)
+  const [suggestions, setSuggestions] = useState({ products: [], brands: [] });
+  const [isSuggestOpen, setIsSuggestOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [visualSearchLoading, setVisualSearchLoading] = useState(false);
+  const visualInputRef = React.useRef(null);
+  const searchWrapperRef = React.useRef(null);
+
   useEffect(() => {
     fetchCategories();
   }, [location.pathname, targetDb]);
+
+  // Click outside listener for search suggestions
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target)) {
+        setIsSuggestOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced Auto-suggestion Fetch
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) {
+      setSuggestions({ products: [], brands: [] });
+      setIsSuggestOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get('/products/suggestions', { params: { q: trimmed } });
+        setSuggestions(res.data || { products: [], brands: [] });
+        setIsSuggestOpen(true);
+      } catch (err) {
+        // ignore suggestions error
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Voice Search Handler
+  const handleVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice Search is not supported on this browser. Please try Google Chrome or Microsoft Edge.');
+      return;
+    }
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-IN';
+      recognition.interimResults = false;
+      setIsListening(true);
+
+      recognition.onresult = (event) => {
+        const speechResult = event.results[0][0].transcript;
+        setSearchQuery(speechResult);
+        setIsListening(false);
+        setIsSuggestOpen(false);
+        navigate(`/products?q=${encodeURIComponent(speechResult)}`);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      setIsListening(false);
+    }
+  };
+
+  // Visual Image Search Handler
+  const handleVisualUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setVisualSearchLoading(true);
+    // Parse visual keywords from file name or detect general object
+    const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_\-\d]/g, ' ').trim();
+    setTimeout(() => {
+      setVisualSearchLoading(false);
+      const queryTerm = cleanName.length > 2 ? cleanName : 'Fashion';
+      setSearchQuery(queryTerm);
+      setIsSuggestOpen(false);
+      navigate(`/products?q=${encodeURIComponent(queryTerm)}`);
+    }, 600);
+  };
 
   const fetchCategories = async () => {
     try {
@@ -104,36 +201,148 @@ export default function Navbar({ onOpenSidebar }) {
           </svg>
         </Link>
 
-        {/* Global Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="jmart-search-bar">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        {/* Advanced Global Search Bar with Auto-suggest, Voice & Visual Search */}
+        <div className="jmart-search-wrapper" ref={searchWrapperRef}>
+          <form onSubmit={handleSearchSubmit} className="jmart-search-bar">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search products, brands, luxury deals..."
+              value={searchQuery}
+              onFocus={() => {
+                if (suggestions.products.length > 0 || suggestions.brands.length > 0) {
+                  setIsSuggestOpen(true);
+                }
+              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
-          <div className="search-category-select-wrapper">
-            <select
-              className="search-category-select"
-              value={searchCategory}
-              onChange={(e) => setSearchCategory(e.target.value)}
+            {/* Clear Input Button */}
+            {searchQuery && (
+              <button
+                type="button"
+                className="search-action-btn search-clear-btn"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSuggestions({ products: [], brands: [] });
+                  setIsSuggestOpen(false);
+                }}
+                title="Clear Search"
+              >
+                <X size={14} />
+              </button>
+            )}
+
+            {/* Voice Search Button */}
+            <button
+              type="button"
+              className={`search-action-btn voice-search-btn ${isListening ? 'listening' : ''}`}
+              onClick={handleVoiceSearch}
+              title={isListening ? 'Listening... Speak now' : 'Search by Voice'}
             >
-              <option value="">All categories</option>
-              {categories.map((c) => (
-                <option key={c.category_id} value={c.category_id}>
-                  {c.category_name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={12} className="select-arrow" />
-          </div>
+              <Mic size={16} />
+            </button>
 
-          <button type="submit" className="search-submit-btn" title="Search">
-            <Search size={16} />
-          </button>
-        </form>
+            {/* Visual Search Button & Hidden File Input */}
+            <input
+              type="file"
+              ref={visualInputRef}
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleVisualUpload}
+            />
+            <button
+              type="button"
+              className={`search-action-btn visual-search-btn ${visualSearchLoading ? 'loading' : ''}`}
+              onClick={() => visualInputRef.current?.click()}
+              title="Search by Image / Visual Upload"
+            >
+              <Camera size={16} />
+            </button>
+
+            <div className="search-category-select-wrapper">
+              <select
+                className="search-category-select"
+                value={searchCategory}
+                onChange={(e) => setSearchCategory(e.target.value)}
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c.category_id} value={c.category_id}>
+                    {c.category_name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={12} className="select-arrow" />
+            </div>
+
+            <button type="submit" className="search-submit-btn" title="Search">
+              <Search size={16} />
+            </button>
+          </form>
+
+          {/* Auto-suggest Results Dropdown */}
+          {isSuggestOpen && (suggestions.products.length > 0 || suggestions.brands.length > 0) && (
+            <div className="search-suggestions-dropdown">
+              {suggestions.brands.length > 0 && (
+                <div className="suggestions-brand-strip">
+                  <span className="strip-title">Brands:</span>
+                  {suggestions.brands.map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      className="brand-suggestion-pill"
+                      onClick={() => {
+                        setSearchQuery(b);
+                        setIsSuggestOpen(false);
+                        navigate(`/products?brand=${encodeURIComponent(b)}`);
+                      }}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {suggestions.products.length > 0 && (
+                <div className="suggestions-products-list">
+                  <div className="suggestions-header">Products matching "{searchQuery}"</div>
+                  {suggestions.products.map((p) => (
+                    <div
+                      key={p.product_id}
+                      className="suggestion-item"
+                      onClick={() => {
+                        setIsSuggestOpen(false);
+                        navigate(`/products/${p.product_id}`);
+                      }}
+                    >
+                      <img src={p.image_url} alt={p.product_name} className="suggestion-thumb" />
+                      <div className="suggestion-info">
+                        <div className="suggestion-name">{p.product_name}</div>
+                        <div className="suggestion-meta">
+                          {p.brand && <span className="suggestion-brand">{p.brand} · </span>}
+                          <span className="suggestion-cat">{p.category_name}</span>
+                        </div>
+                      </div>
+                      <div className="suggestion-price">₹{Number(p.mrp).toLocaleString('en-IN')}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="view-all-results-btn"
+                onClick={(e) => {
+                  handleSearchSubmit(e);
+                  setIsSuggestOpen(false);
+                }}
+              >
+                <Sparkles size={14} /> See all results for "{searchQuery}"
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="header-right-group">

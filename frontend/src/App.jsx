@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
+import AIChatbot from './components/AIChatbot';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -168,6 +169,9 @@ export default function App() {
 
             {/* Content Footer */}
             <Footer />
+
+            {/* Global JMART Concierge & AI Support Chatbot */}
+            <AIChatbot />
           </main>
         </div>
       </div>

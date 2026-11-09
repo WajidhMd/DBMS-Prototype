@@ -6,6 +6,55 @@ import {
   deleteProduct as removeProduct
 } from '../services/dbAdapter.js';
 
+// In-memory Q&A Store initialized with realistic sample data
+const QA_DATABASE = {
+  'prod-001': [
+    {
+      id: 'qa-1',
+      question: 'Does this headphone support Active Noise Cancellation (ANC)?',
+      asked_by: 'Rahul K.',
+      date: '2026-02-15',
+      answer: 'Yes, it features Hybrid Active Noise Cancellation up to 35dB with Transparency mode.',
+      answered_by: 'AcousticTech Seller',
+      is_seller: true
+    },
+    {
+      id: 'qa-2',
+      question: 'What is the battery backup on a single full charge?',
+      asked_by: 'Deepa S.',
+      date: '2026-02-18',
+      answer: 'You get up to 40 hours of playtime with ANC off and 30 hours with ANC on. Fast charging gives 4 hours playback in 10 mins.',
+      answered_by: 'AcousticTech Seller',
+      is_seller: true
+    }
+  ],
+  'prod-012': [
+    {
+      id: 'qa-3',
+      question: 'Are the mechanical switches hot-swappable?',
+      asked_by: 'Vikram M.',
+      date: '2026-03-01',
+      answer: 'Yes, it comes with 5-pin hot-swappable sockets compatible with Cherry, Gateron, and Kailh switches.',
+      answered_by: 'MechStrike Official',
+      is_seller: true
+    }
+  ],
+  'prod-101': [
+    {
+      id: 'qa-4',
+      question: 'Is a charger included in the smartphone box?',
+      asked_by: 'Ankit P.',
+      date: '2026-03-05',
+      answer: 'Yes, the box contains a 67W Turbo Fast Charger, USB-C braided cable, and protective clear TPU case.',
+      answered_by: 'AeroTech Mobile',
+      is_seller: true
+    }
+  ]
+};
+
+// Stock Alert Subscriptions Store
+const STOCK_ALERTS = [];
+
 export async function getProducts(req, res) {
   try {
     const products = await getAllProducts(req.query, req.dbType);
@@ -22,6 +71,120 @@ export async function getProductById(req, res) {
     return res.json(product);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch product details.' });
+  }
+}
+
+export async function getSearchSuggestions(req, res) {
+  try {
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (!q || q.length < 2) {
+      return res.json({ suggestions: [], products: [], brands: [] });
+    }
+
+    const all = await getAllProducts({}, req.dbType);
+    const matchedProducts = all
+      .filter(p =>
+        p.product_name.toLowerCase().includes(q) ||
+        (p.brand && p.brand.toLowerCase().includes(q)) ||
+        (p.category_name && p.category_name.toLowerCase().includes(q))
+      )
+      .slice(0, 6)
+      .map(p => ({
+        product_id: p.product_id,
+        product_name: p.product_name,
+        brand: p.brand,
+        mrp: p.mrp,
+        image_url: p.image_url,
+        category_name: p.category_name
+      }));
+
+    const brands = Array.from(
+      new Set(
+        all
+          .filter(p => p.brand && p.brand.toLowerCase().includes(q))
+          .map(p => p.brand)
+      )
+    ).slice(0, 4);
+
+    return res.json({
+      query: q,
+      products: matchedProducts,
+      brands
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to get search suggestions.' });
+  }
+}
+
+export async function getProductQA(req, res) {
+  try {
+    const { id } = req.params;
+    const questions = QA_DATABASE[id] || [
+      {
+        id: `qa-default-${id}-1`,
+        question: 'Is this an original genuine product covered under warranty?',
+        asked_by: 'Customer',
+        date: '2026-01-10',
+        answer: 'Yes, 100% genuine product with 1-Year Official Manufacturer Warranty and 7-day easy replacement policy.',
+        answered_by: 'Verified Seller',
+        is_seller: true
+      }
+    ];
+    return res.json(questions);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to fetch Q&A.' });
+  }
+}
+
+export async function postProductQuestion(req, res) {
+  try {
+    const { id } = req.params;
+    const { question } = req.body;
+    if (!question || !question.trim()) {
+      return res.status(400).json({ error: 'Question text is required.' });
+    }
+
+    if (!QA_DATABASE[id]) {
+      QA_DATABASE[id] = [];
+    }
+
+    const newQA = {
+      id: `qa-${Date.now()}`,
+      question: question.trim(),
+      asked_by: req.user ? (req.user.email.split('@')[0]) : 'Verified Buyer',
+      date: new Date().toISOString().split('T')[0],
+      answer: 'Thanks for your question! The seller will post a response shortly.',
+      answered_by: 'JMART Support Team',
+      is_seller: false
+    };
+
+    QA_DATABASE[id].unshift(newQA);
+    return res.status(201).json(newQA);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to post question.' });
+  }
+}
+
+export async function subscribeStockAlert(req, res) {
+  try {
+    const { id } = req.params;
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email address is required.' });
+    }
+
+    STOCK_ALERTS.push({
+      product_id: id,
+      email,
+      subscribed_at: new Date().toISOString()
+    });
+
+    return res.json({
+      success: true,
+      message: `You'll be notified at ${email} as soon as this item is back in stock!`
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to register stock notification.' });
   }
 }
 

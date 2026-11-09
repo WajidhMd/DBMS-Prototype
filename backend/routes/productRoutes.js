@@ -2,6 +2,10 @@ import express from 'express';
 import {
   getProducts,
   getProductById,
+  getSearchSuggestions,
+  getProductQA,
+  postProductQuestion,
+  subscribeStockAlert,
   createProduct,
   updateProduct,
   deleteProduct
@@ -9,6 +13,11 @@ import {
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+router.get('/suggestions', getSearchSuggestions);
+router.get('/:id/qa', getProductQA);
+router.post('/:id/qa', authenticateToken, postProductQuestion);
+router.post('/:id/notify', subscribeStockAlert);
 
 router.get('/', getProducts);
 router.get('/:id', getProductById);

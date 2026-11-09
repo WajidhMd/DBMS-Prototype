@@ -3,8 +3,27 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
 import api from '../services/api';
-import { MapPin, CreditCard, ShieldCheck, Plus, CheckCircle, ArrowLeft, FileText, ShoppingBag } from 'lucide-react';
+import {
+  MapPin,
+  CreditCard,
+  ShieldCheck,
+  Plus,
+  CheckCircle,
+  ArrowLeft,
+  FileText,
+  ShoppingBag,
+  Truck,
+  Gift,
+  Zap,
+  Tag
+} from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
+
+const DELIVERY_TIERS = [
+  { id: 'standard', name: 'Standard Delivery', time: '3-5 Business Days', fee: 0, tag: 'FREE' },
+  { id: 'next_day', name: 'Next-Day Express', time: 'Guaranteed Tomorrow by 8 PM', fee: 49, tag: '₹49' },
+  { id: 'same_day', name: 'VIP Same-Day Rush', time: 'Delivered Today by 9 PM', fee: 99, tag: '₹99' }
+];
 
 export default function Checkout() {
   const { user } = useAuth();
@@ -21,6 +40,15 @@ export default function Checkout() {
   const [createdOrder, setCreatedOrder] = useState(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
+  // Delivery & Gifting Options
+  const [deliveryTier, setDeliveryTier] = useState('standard');
+  const [isGift, setIsGift] = useState(false);
+  const [addGiftWrap, setAddGiftWrap] = useState(false);
+  const [giftMessage, setGiftMessage] = useState('');
+
+  // Applied Coupon from session
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+
   // Add Address Modal state
   const [showAddrModal, setShowAddrModal] = useState(false);
   const [addrForm, setAddrForm] = useState({
@@ -34,6 +62,10 @@ export default function Checkout() {
 
   useEffect(() => {
     fetchCheckoutData();
+    try {
+      const storedCoupon = JSON.parse(sessionStorage.getItem('jmart_applied_coupon') || 'null');
+      if (storedCoupon) setAppliedCoupon(storedCoupon);
+    } catch (_) {}
   }, [targetDb]);
 
   const fetchCheckoutData = async () => {
@@ -85,9 +117,15 @@ export default function Checkout() {
       setSubmitting(true);
       const res = await api.post('/orders', {
         address_id: selectedAddressId,
-        payment_mode: paymentMode
+        payment_mode: paymentMode,
+        delivery_tier: deliveryTier,
+        is_gift: isGift,
+        gift_wrap: addGiftWrap,
+        gift_message: giftMessage
       });
 
+      // Clear applied coupon from storage upon order placement
+      sessionStorage.removeItem('jmart_applied_coupon');
       setCreatedOrder(res.data);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to place order.');
@@ -100,104 +138,80 @@ export default function Checkout() {
     return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Preparing checkout...</div>;
   }
 
-  // Order Success View with Downloadable Invoice option
+  // Order Success Screen
   if (createdOrder) {
     return (
-      <div className="animate-fade-in" style={{ padding: '3rem 1rem', maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
+      <div className="animate-fade-in" style={{ padding: '3rem 1rem', maxWidth: '650px', margin: '0 auto', textAlign: 'center' }}>
         <div style={{
           backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
+          border: '1px solid var(--color-primary)',
           borderRadius: 'var(--radius-lg)',
-          padding: '3rem 2rem',
-          boxShadow: 'var(--shadow-glow)'
+          padding: '2.5rem 2rem',
+          boxShadow: '0 12px 36px rgba(0,0,0,0.3)'
         }}>
-          <div style={{
-            width: '70px',
-            height: '70px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(16, 185, 129, 0.15)',
-            color: 'var(--accent-green)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1.5rem auto'
-          }}>
-            <CheckCircle size={40} />
-          </div>
-
-          <span className="badge badge-success" style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}>
-            PAYMENT COMPLETED & ORDER PLACED
-          </span>
-
-          <h1 style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.75rem', marginBottom: '0.5rem' }}>
-            Order Placed Successfully!
-          </h1>
-
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', maxWidth: '500px', margin: '0 auto 1.5rem auto' }}>
-            Your payment was processed successfully. Order status is now <strong style={{ color: 'var(--accent-purple)' }}>Order Placed</strong>. An employee will forward your order to the seller for confirmation.
+          <CheckCircle size={56} color="var(--color-primary)" style={{ margin: '0 auto 1rem' }} />
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>Order Placed Successfully!</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+            Thank you for shopping with JMART! Your order ID is <strong style={{ color: 'var(--text-primary)' }}>#{createdOrder.order_id}</strong>.
           </p>
 
           <div style={{
             backgroundColor: 'var(--bg-input)',
-            border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem',
-            marginBottom: '2rem',
             textAlign: 'left',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '1rem',
-            fontSize: '0.9rem'
+            marginBottom: '1.5rem',
+            fontSize: '0.88rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.6rem'
           }}>
-            <div>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>Order Reference</span>
-              <strong style={{ fontSize: '1.1rem', color: 'var(--accent-purple)' }}>{createdOrder.order_number}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Status:</span>
+              <span className="badge badge-warning">{createdOrder.order_status}</span>
             </div>
-
-            <div>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>Total Paid</span>
-              <strong style={{ fontSize: '1.1rem', color: 'var(--accent-green)' }}>₹{parseFloat(createdOrder.order_amount || 0).toFixed(2)}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Target DBMS:</span>
+              <span className={`badge badge-${targetDb}`}>{targetDb.toUpperCase()}</span>
             </div>
-
-            <div>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>Payment Method</span>
-              <strong>{createdOrder.payment?.payment_mode || paymentMode}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Delivery Speed:</span>
+              <strong style={{ color: 'var(--color-primary)' }}>
+                {DELIVERY_TIERS.find(t => t.id === deliveryTier)?.name}
+              </strong>
             </div>
-
-            <div>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>Initial Status</span>
-              <span className="badge badge-warning">Order Placed</span>
+            {isGift && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Gifting Option:</span>
+                <span style={{ color: 'var(--color-primary)' }}>Luxury Gift Wrap & Message Included</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Total Amount:</span>
+              <strong style={{ color: 'var(--color-primary)', fontSize: '1.1rem' }}>
+                ₹{parseFloat(createdOrder.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </strong>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
             <button
               onClick={() => setShowInvoiceModal(true)}
               className="btn-primary-block"
-              style={{
-                width: 'auto',
-                marginTop: 0,
-                padding: '0.75rem 1.5rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'var(--accent-purple)'
-              }}
+              style={{ width: 'auto', padding: '0.65rem 1.25rem', marginTop: 0, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              <FileText size={18} /> View & Download PDF Invoice
+              <FileText size={16} /> Download Tax Invoice
             </button>
-
-            <button
-              onClick={() => navigate('/orders')}
+            <Link
+              to="/orders"
               className="btn-secondary-outline"
-              style={{ width: 'auto', padding: '0.75rem 1.5rem' }}
+              style={{ width: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              Go to My Orders
-            </button>
+              <Truck size={16} /> Track Order in JMART
+            </Link>
           </div>
         </div>
 
-        {/* Downloadable PDF Invoice Modal */}
         {showInvoiceModal && (
           <InvoiceModal
             order={createdOrder}
@@ -209,7 +223,11 @@ export default function Checkout() {
   }
 
   const items = cart?.items || [];
-  const grandTotal = cart?.grand_total || 0;
+  const rawGrandTotal = cart?.grand_total || 0;
+  const deliveryFee = DELIVERY_TIERS.find(t => t.id === deliveryTier)?.fee || 0;
+  const giftFee = (isGift && addGiftWrap) ? 49 : 0;
+  const couponDiscount = appliedCoupon?.discountAmount || 0;
+  const finalPayable = Math.max(0, rawGrandTotal + deliveryFee + giftFee - couponDiscount);
 
   if (items.length === 0) {
     return (
@@ -223,7 +241,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '3rem', maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ paddingBottom: '3rem', maxWidth: '1050px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem' }}>
         <Link to="/cart" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
           <ArrowLeft size={16} /> Back to Cart
@@ -233,7 +251,7 @@ export default function Checkout() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '1.75rem' }}>
         <div>
           {/* 1. Shipping Address Selection */}
           <div style={{
@@ -245,7 +263,7 @@ export default function Checkout() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h2 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <MapPin size={20} color="var(--accent-purple)" /> Shipping Address
+                <MapPin size={20} color="var(--color-primary)" /> Shipping Address
               </h2>
 
               <button type="button" onClick={() => setShowAddrModal(true)} className="btn-secondary-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}>
@@ -262,7 +280,7 @@ export default function Checkout() {
                     key={a.address_id}
                     style={{
                       backgroundColor: 'var(--bg-input)',
-                      border: `1px solid ${selectedAddressId === a.address_id ? 'var(--accent-purple)' : 'var(--border-color)'}`,
+                      border: `1px solid ${selectedAddressId === a.address_id ? 'var(--color-primary)' : 'var(--border-color)'}`,
                       borderRadius: 'var(--radius-md)',
                       padding: '1rem',
                       display: 'flex',
@@ -278,7 +296,7 @@ export default function Checkout() {
                       value={a.address_id}
                       checked={selectedAddressId === a.address_id}
                       onChange={() => setSelectedAddressId(a.address_id)}
-                      style={{ marginTop: '0.2rem' }}
+                      style={{ marginTop: '0.2rem', accentColor: 'var(--color-primary)' }}
                     />
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -296,7 +314,115 @@ export default function Checkout() {
             )}
           </div>
 
-          {/* 2. Payment Method Selector */}
+          {/* 2. Tiered Delivery Speeds */}
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.5rem',
+            marginBottom: '1.5rem'
+          }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Truck size={20} color="var(--color-primary)" /> Choose Delivery Speed
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {DELIVERY_TIERS.map(tier => (
+                <label
+                  key={tier.id}
+                  style={{
+                    backgroundColor: 'var(--bg-input)',
+                    border: `1px solid ${deliveryTier === tier.id ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.85rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <input
+                      type="radio"
+                      name="delivery_tier"
+                      value={tier.id}
+                      checked={deliveryTier === tier.id}
+                      onChange={() => setDeliveryTier(tier.id)}
+                      style={{ accentColor: 'var(--color-primary)' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>{tier.name}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{tier.time}</div>
+                    </div>
+                  </div>
+                  <span className={`badge ${tier.fee === 0 ? 'badge-success' : 'badge-warning'}`} style={{ fontWeight: 700 }}>
+                    {tier.tag}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. Gifting Options */}
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.5rem',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
+              <Gift size={20} color="var(--color-primary)" />
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>Gifting Options</h2>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+              <input
+                type="checkbox"
+                checked={isGift}
+                onChange={(e) => setIsGift(e.target.checked)}
+                style={{ accentColor: 'var(--color-primary)' }}
+              />
+              <span>This order contains a gift for a loved one</span>
+            </label>
+
+            {isGift && (
+              <div style={{ paddingLeft: '1.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={addGiftWrap}
+                    onChange={(e) => setAddGiftWrap(e.target.checked)}
+                    style={{ accentColor: 'var(--color-primary)' }}
+                  />
+                  <span>Add Luxury Black & Gold Gift Packaging & Satin Ribbon (+₹49)</span>
+                </label>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
+                    Personalized Gift Message:
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Wishing you a wonderful celebration! Warm regards."
+                    value={giftMessage}
+                    onChange={(e) => setGiftMessage(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      color: 'var(--text-primary)',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.85rem'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Payment Method Selector */}
           <div style={{
             backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
@@ -304,7 +430,7 @@ export default function Checkout() {
             padding: '1.5rem'
           }}>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CreditCard size={20} color="var(--accent-purple)" /> Payment Method
+              <CreditCard size={20} color="var(--color-primary)" /> Payment Method
             </h2>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -313,7 +439,7 @@ export default function Checkout() {
                   key={mode}
                   style={{
                     backgroundColor: 'var(--bg-input)',
-                    border: `1px solid ${paymentMode === mode ? 'var(--accent-purple)' : 'var(--border-color)'}`,
+                    border: `1px solid ${paymentMode === mode ? 'var(--color-primary)' : 'var(--border-color)'}`,
                     borderRadius: 'var(--radius-md)',
                     padding: '0.85rem 1rem',
                     display: 'flex',
@@ -330,6 +456,7 @@ export default function Checkout() {
                     value={mode}
                     checked={paymentMode === mode}
                     onChange={(e) => setPaymentMode(e.target.value)}
+                    style={{ accentColor: 'var(--color-primary)' }}
                   />
                   {mode}
                 </label>
@@ -338,7 +465,7 @@ export default function Checkout() {
           </div>
         </div>
 
-        {/* 3. Order Summary & Submit Sidebar */}
+        {/* 5. Order Summary Sidebar */}
         <div style={{
           backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
@@ -348,20 +475,52 @@ export default function Checkout() {
         }}>
           <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem' }}>Order Details</h3>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem', maxHeight: '200px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem', maxHeight: '180px', overflowY: 'auto' }}>
             {items.map(item => (
               <div key={item.product_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>{item.product?.product_name} (x{item.quantity})</span>
-                <strong style={{ color: 'var(--text-primary)' }}>₹{parseFloat(item.subtotal).toFixed(2)}</strong>
+                <strong style={{ color: 'var(--text-primary)' }}>₹{parseFloat(item.subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
               </div>
             ))}
           </div>
 
           <hr style={{ border: 0, height: '1px', background: 'var(--border-color)', margin: '1rem 0' }} />
 
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Items Subtotal:</span>
+              <strong style={{ color: 'var(--text-primary)' }}>₹{rawGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+            </div>
+
+            {couponDiscount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#22c55e' }}>
+                <span>Coupon ({appliedCoupon.code}):</span>
+                <strong>- ₹{couponDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Delivery Speed:</span>
+              <strong style={{ color: deliveryFee === 0 ? '#22c55e' : 'var(--text-primary)' }}>
+                {deliveryFee === 0 ? 'FREE' : `+ ₹${deliveryFee}`}
+              </strong>
+            </div>
+
+            {giftFee > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Luxury Gift Wrap:</span>
+                <strong style={{ color: 'var(--text-primary)' }}>+ ₹{giftFee}</strong>
+              </div>
+            )}
+          </div>
+
+          <hr style={{ border: 0, height: '1px', background: 'var(--border-color)', margin: '1rem 0' }} />
+
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
             <span style={{ fontSize: '1rem', fontWeight: 700 }}>Total Payable:</span>
-            <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-purple)' }}>₹{grandTotal.toFixed(2)}</strong>
+            <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+              ₹{finalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </strong>
           </div>
 
           <button onClick={handlePlaceOrder} className="btn-primary-block" style={{ padding: '0.85rem' }} disabled={submitting}>

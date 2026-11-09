@@ -15,7 +15,11 @@ import {
   RotateCcw,
   Star,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  XCircle,
+  X,
+  ShieldCheck
 } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
 import VisualTracker from '../components/VisualTracker';
@@ -38,6 +42,72 @@ export default function Orders() {
   const [returnOrder, setReturnOrder] = useState(null);
   const [shippingReturnReq, setShippingReturnReq] = useState(null);
   const [reviewItem, setReviewItem] = useState(null);
+
+  // 3PL Tracking Modal State
+  const [trackingOrder, setTrackingOrder] = useState(null);
+  const [trackingData, setTrackingData] = useState(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+
+  // Order Cancellation State
+  const [cancelOrderObj, setCancelOrderObj] = useState(null);
+  const [cancelReason, setCancelReason] = useState('Order placed by mistake');
+  const [cancelling, setCancelling] = useState(false);
+
+  // Order Exchange State
+  const [exchangeOrderObj, setExchangeOrderObj] = useState(null);
+  const [selectedExchangeItem, setSelectedExchangeItem] = useState(null);
+  const [exchangeReason, setExchangeReason] = useState('Size / fit too small');
+  const [replacementVariant, setReplacementVariant] = useState('Next larger size / standard color');
+  const [exchanging, setExchanging] = useState(false);
+
+  const handleOpenTracking = async (ord) => {
+    try {
+      setTrackingOrder(ord);
+      setTrackingLoading(true);
+      const res = await api.get(`/logistics/tracking/${ord.order_id}`);
+      setTrackingData(res.data);
+    } catch (err) {
+      alert('Failed to load tracking data.');
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelOrderObj) return;
+    try {
+      setCancelling(true);
+      const res = await api.post(`/orders/${cancelOrderObj.order_id}/cancel`, {
+        reason: cancelReason
+      });
+      alert(res.data?.message || 'Order cancelled successfully.');
+      setCancelOrderObj(null);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to cancel order.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleConfirmExchange = async () => {
+    if (!exchangeOrderObj) return;
+    try {
+      setExchanging(true);
+      const res = await api.post(`/orders/${exchangeOrderObj.order_id}/exchange`, {
+        itemId: selectedExchangeItem?.item_id || 'item-1',
+        reason: exchangeReason,
+        replacementVariant
+      });
+      alert(res.data?.message || 'Exchange request approved!');
+      setExchangeOrderObj(null);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to request exchange.');
+    } finally {
+      setExchanging(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -219,6 +289,76 @@ export default function Orders() {
                           ₹{parseFloat(ord.order_amount).toFixed(2)}
                         </strong>
                       </div>
+
+                      {/* 3PL Courier Tracking Modal Launcher */}
+                      <button
+                        onClick={() => handleOpenTracking(ord)}
+                        style={{
+                          background: 'rgba(198, 161, 91, 0.15)',
+                          border: '1px solid var(--color-primary)',
+                          color: 'var(--color-primary)',
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}
+                        title="View Live 3PL Courier Tracking & Milestones"
+                      >
+                        <Truck size={14} /> 3PL Track
+                      </button>
+
+                      {/* Customer Cancel Order Button (Pre-dispatch) */}
+                      {role === 'CUSTOMER' && ['ORDER_PLACED', 'PENDING_EMPLOYEE', 'PENDING', 'SENT_TO_SELLER', 'ORDER_CONFIRMED', 'PROCESSING'].includes((ord.order_status || '').toUpperCase()) && (
+                        <button
+                          onClick={() => setCancelOrderObj(ord)}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#f87171',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                          title="Cancel Order prior to dispatch"
+                        >
+                          <XCircle size={14} /> Cancel
+                        </button>
+                      )}
+
+                      {/* Customer Exchange / Replacement Button if Delivered */}
+                      {role === 'CUSTOMER' && isDelivered && (
+                        <button
+                          onClick={() => {
+                            setExchangeOrderObj(ord);
+                            setSelectedExchangeItem(ord.items?.[0] || null);
+                          }}
+                          style={{
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid #3b82f6',
+                            color: '#60a5fa',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                          title="Request product replacement / size exchange"
+                        >
+                          <RefreshCw size={14} /> Exchange
+                        </button>
+                      )}
 
                       {/* Customer Return Button if Delivered */}
                       {role === 'CUSTOMER' && isDelivered && (
@@ -507,6 +647,189 @@ export default function Orders() {
           onClose={() => setReviewItem(null)}
           onSuccess={() => alert('Thank you for your feedback!')}
         />
+      )}
+
+      {/* 3PL Courier Tracking Live Modal */}
+      {trackingOrder && (
+        <div className="modal-overlay" onClick={() => setTrackingOrder(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Truck size={22} color="var(--color-primary)" />
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>3PL Courier Transit Details</h3>
+              </div>
+              <button onClick={() => setTrackingOrder(null)} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {trackingLoading || !trackingData ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                Connecting to logistics courier gateway...
+              </div>
+            ) : (
+              <div>
+                <div style={{ background: 'var(--bg-input)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>Courier Partner:</span>
+                    <strong style={{ display: 'block', color: 'var(--color-primary)' }}>{trackingData.courier}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>Air Waybill (AWB):</span>
+                    <strong style={{ display: 'block' }}>{trackingData.awbNumber}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>Current Status:</span>
+                    <span className="badge badge-success">{trackingData.currentStatus}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>Destination:</span>
+                    <strong style={{ display: 'block' }}>{trackingData.destinationCity}</strong>
+                  </div>
+                </div>
+
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.85rem' }}>Live Checkpoints:</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '2px solid var(--color-primary)', paddingLeft: '1.25rem', marginLeft: '0.5rem' }}>
+                  {trackingData.timeline?.map((step, idx) => (
+                    <div key={idx} style={{ position: 'relative' }}>
+                      <div style={{ position: 'absolute', left: '-1.62rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-primary)' }} />
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{step.status}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{step.location}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{step.timestamp}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pre-Dispatch Cancellation Modal */}
+      {cancelOrderObj && (
+        <div className="modal-overlay" onClick={() => setCancelOrderObj(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <XCircle size={24} color="#ef4444" />
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>Cancel Order #{cancelOrderObj.order_number}</h3>
+            </div>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+              Are you sure you want to cancel this order? Instant refund of <strong>₹{parseFloat(cancelOrderObj.order_amount).toFixed(2)}</strong> will be credited directly to your payment source.
+            </p>
+
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label className="form-label">Reason for Cancellation</label>
+              <select
+                className="form-input"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              >
+                <option value="Order placed by mistake">Order placed by mistake</option>
+                <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+                <option value="Need to change shipping address">Need to change shipping address</option>
+                <option value="Expected faster delivery">Expected faster delivery</option>
+                <option value="Other / Changed mind">Other / Changed mind</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button type="button" onClick={() => setCancelOrderObj(null)} className="btn-secondary-outline" style={{ width: 'auto' }}>
+                Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancel}
+                disabled={cancelling}
+                style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.55rem 1.25rem',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Exchange / Replacement Modal */}
+      {exchangeOrderObj && (
+        <div className="modal-overlay" onClick={() => setExchangeOrderObj(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <RefreshCw size={22} color="#60a5fa" />
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>Request Product Exchange</h3>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+              Exchange your item for another size or replacement with <strong>Free Doorstep Reverse Pickup</strong>!
+            </p>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label className="form-label">Item to Exchange</label>
+              <select
+                className="form-input"
+                value={selectedExchangeItem?.item_id}
+                onChange={(e) => {
+                  const it = exchangeOrderObj.items?.find(i => i.item_id === e.target.value);
+                  setSelectedExchangeItem(it);
+                }}
+              >
+                {exchangeOrderObj.items?.map(it => (
+                  <option key={it.item_id} value={it.item_id}>
+                    {it.product_name} (Qty: {it.quantity})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label className="form-label">Exchange Reason</label>
+              <select
+                className="form-input"
+                value={exchangeReason}
+                onChange={(e) => setExchangeReason(e.target.value)}
+              >
+                <option value="Size / fit too small">Size / fit too small</option>
+                <option value="Size / fit too large">Size / fit too large</option>
+                <option value="Color preference change">Color preference change</option>
+                <option value="Minor performance / aesthetic imperfection">Minor performance / aesthetic imperfection</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">Requested Replacement Variant / Note</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Size Large instead of Medium, or Navy Blue"
+                value={replacementVariant}
+                onChange={(e) => setReplacementVariant(e.target.value)}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button type="button" onClick={() => setExchangeOrderObj(null)} className="btn-secondary-outline" style={{ width: 'auto' }}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmExchange}
+                disabled={exchanging}
+                className="btn-primary-block"
+                style={{ width: 'auto', marginTop: 0, padding: '0.55rem 1.25rem' }}
+              >
+                {exchanging ? 'Submitting...' : 'Confirm Exchange Pickup'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
