@@ -21,10 +21,10 @@ export async function getCart(req, res) {
 export async function addToCart(req, res) {
   try {
     const customerId = req.user.ref_id;
-    const { product_id, quantity } = req.body;
+    const { product_id, quantity, attributes } = req.body;
     if (!product_id) return res.status(400).json({ error: 'Product ID is required.' });
 
-    const updatedCart = await addItemToCart(customerId, product_id, quantity || 1, req.dbType);
+    const updatedCart = await addItemToCart(customerId, product_id, quantity || 1, req.dbType, attributes);
     return res.json(updatedCart);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to add item to cart.' });
@@ -78,6 +78,7 @@ export async function syncCart(req, res) {
 }
 
 const PROMO_COUPONS = {
+  PACIFIC20: { code: 'PACIFIC20', type: 'percentage', value: 20, maxDiscount: 1000, minCart: 500, description: '20% OFF up to ₹1,000 on luxury orders over ₹500' },
   JMART20: { code: 'JMART20', type: 'percentage', value: 20, maxDiscount: 1000, minCart: 500, description: '20% OFF up to ₹1,000 on orders over ₹500' },
   GOLD500: { code: 'GOLD500', type: 'flat', value: 500, minCart: 2000, description: 'Flat ₹500 OFF on orders above ₹2,000' },
   FESTIVE10: { code: 'FESTIVE10', type: 'percentage', value: 10, maxDiscount: 500, minCart: 0, description: 'Festive 10% OFF on all orders' },
@@ -95,7 +96,7 @@ export async function validateCoupon(req, res) {
     const coupon = PROMO_COUPONS[cleanCode];
 
     if (!coupon) {
-      return res.status(400).json({ valid: false, error: `Invalid coupon code '${cleanCode}'. Try 'JMART20' or 'GOLD500'.` });
+      return res.status(400).json({ valid: false, error: `Invalid coupon code '${cleanCode}'. Try 'PACIFIC20' or 'JMART20' or 'GOLD500'.` });
     }
 
     const subtotal = Number(cartTotal) || 0;

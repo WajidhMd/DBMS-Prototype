@@ -17,7 +17,7 @@ export const WishlistProvider = ({ children }) => {
   // Helper to load guest wishlist from localStorage
   const getGuestWishlistFromStorage = () => {
     try {
-      const saved = localStorage.getItem('jmart_wishlist');
+      const saved = localStorage.getItem('pacific_wishlist') || localStorage.getItem('pacific_wishlist');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
@@ -65,11 +65,11 @@ export const WishlistProvider = ({ children }) => {
       }
     };
 
-    window.addEventListener('jmart-wishlist-update', handleWishlistUpdate);
+    window.addEventListener('pacific-wishlist-update', handleWishlistUpdate);
     window.addEventListener('storage', handleWishlistUpdate);
 
     return () => {
-      window.removeEventListener('jmart-wishlist-update', handleWishlistUpdate);
+      window.removeEventListener('pacific-wishlist-update', handleWishlistUpdate);
       window.removeEventListener('storage', handleWishlistUpdate);
     };
   }, [refreshWishlist, user]);
@@ -86,7 +86,7 @@ export const WishlistProvider = ({ children }) => {
       try {
         const res = await api.post('/wishlist', { product_id: product.product_id });
         setWishlist(res.data);
-        window.dispatchEvent(new Event('jmart-wishlist-update'));
+        window.dispatchEvent(new Event('pacific-wishlist-update'));
         return { success: true };
       } catch (err) {
         alert(err.response?.data?.error || 'Failed to add item to wishlist.');
@@ -112,9 +112,9 @@ export const WishlistProvider = ({ children }) => {
           }
         };
         const updated = [newItem, ...items];
-        localStorage.setItem('jmart_wishlist', JSON.stringify(updated));
+        localStorage.setItem('pacific_wishlist', JSON.stringify(updated));
         setWishlist(updated);
-        window.dispatchEvent(new Event('jmart-wishlist-update'));
+        window.dispatchEvent(new Event('pacific-wishlist-update'));
       }
       return { success: true };
     }
@@ -127,7 +127,7 @@ export const WishlistProvider = ({ children }) => {
       try {
         const res = await api.delete(`/wishlist/${productId}`);
         setWishlist(res.data);
-        window.dispatchEvent(new Event('jmart-wishlist-update'));
+        window.dispatchEvent(new Event('pacific-wishlist-update'));
         return { success: true };
       } catch (err) {
         alert(err.response?.data?.error || 'Failed to remove item from wishlist.');
@@ -136,9 +136,9 @@ export const WishlistProvider = ({ children }) => {
     } else {
       const items = getGuestWishlistFromStorage();
       const updated = items.filter(i => (i.product_id !== productId && i.product?.product_id !== productId));
-      localStorage.setItem('jmart_wishlist', JSON.stringify(updated));
+      localStorage.setItem('pacific_wishlist', JSON.stringify(updated));
       setWishlist(updated);
-      window.dispatchEvent(new Event('jmart-wishlist-update'));
+      window.dispatchEvent(new Event('pacific-wishlist-update'));
       return { success: true };
     }
   };
@@ -153,11 +153,17 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const moveToCart = async (product) => {
-    if (!product || !product.product_id) return;
+    if (!product || !product.product_id) return { success: false, error: 'Product not found' };
+    if (product.stock_qty !== undefined && product.stock_qty <= 0) {
+      alert(`"${product.product_name || 'This item'}" is currently out of stock.`);
+      return { success: false, error: 'Out of stock' };
+    }
     const res = await addToCart(product, 1);
     if (res.success) {
       await removeFromWishlist(product.product_id);
+      return { success: true };
     }
+    return res;
   };
 
   const syncGuestWishlist = async () => {
@@ -168,9 +174,9 @@ export const WishlistProvider = ({ children }) => {
       const product_ids = guestItems.map(i => i.product_id || i.product?.product_id).filter(Boolean);
       const res = await api.post('/wishlist/sync', { product_ids });
 
-      localStorage.removeItem('jmart_wishlist');
+      localStorage.removeItem('pacific_wishlist');
       setWishlist(res.data);
-      window.dispatchEvent(new Event('jmart-wishlist-update'));
+      window.dispatchEvent(new Event('pacific-wishlist-update'));
       return res.data;
     } catch (err) {
       console.error('Failed to sync guest wishlist:', err);

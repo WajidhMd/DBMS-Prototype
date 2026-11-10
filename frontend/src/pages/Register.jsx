@@ -172,17 +172,10 @@ export default function Register() {
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-            <div className="auth-logo-wrap" style={{ margin: '0 auto 0.75rem auto' }}>
-              <div className="logo-main" style={{ justifyContent: 'center' }}>
-                <span className="logo-text">jmart</span>
-                <span className="logo-domain">.in</span>
-              </div>
-              <svg className="jmart-smile-curve" viewBox="0 0 100 24" width="85" height="18" style={{ margin: '0 auto' }}>
-                <path d="M 6 6 Q 50 25 90 7" fill="transparent" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" />
-                <path d="M 84 4 L 92 7 L 85 13 Z" fill="var(--color-primary)" stroke="var(--color-primary)" strokeWidth="1" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <h2 className="auth-welcome-title" style={{ fontSize: '1.45rem' }}>Create JMART Account</h2>
+            <Link to="/" className="auth-logo-wrap" style={{ textDecoration: 'none', display: 'inline-block', margin: '0 auto 0.75rem auto' }} title="PACIFIC Home">
+              <img src="/images/pacific_logo.png" alt="PACIFIC" style={{ height: '42px', width: 'auto', objectFit: 'contain', display: 'block' }} />
+            </Link>
+            <h2 className="auth-welcome-title" style={{ fontSize: '1.45rem' }}>Create PACIFIC Account</h2>
             <p className="auth-welcome-subtitle" style={{ fontSize: '0.82rem' }}>
               Target Database: <strong style={{ color: 'var(--color-primary)' }}>{targetDb.toUpperCase()}</strong>
             </p>
@@ -383,7 +376,7 @@ export default function Register() {
             </div>
 
             <button type="submit" className="btn-jmart-submit" disabled={loading} style={{ marginTop: '0.75rem' }}>
-              {loading ? 'Creating Account...' : 'Register & Join JMART'}
+              {loading ? 'Creating Account...' : 'Register & Join PACIFIC'}
             </button>
           </form>
         </div>

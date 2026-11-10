@@ -300,7 +300,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   onClick={() => handleNav('/products?category_id=cat-006')}
                 >
                   <Film size={16} className="item-icon" />
-                  <span>JMART Prime Video</span>
+                  <span>PACIFIC Prime Video</span>
                   <ChevronRight size={14} className="item-arrow" />
                 </button>
               </li>
@@ -311,7 +311,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   onClick={() => handleNav('/products?q=Headphones')}
                 >
                   <Music size={16} className="item-icon" />
-                  <span>JMART Music</span>
+                  <span>PACIFIC Music</span>
                   <ChevronRight size={14} className="item-arrow" />
                 </button>
               </li>
@@ -510,7 +510,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   onClick={() => handleNav('/products?q=Tech')}
                 >
                   <Rocket size={16} className="item-icon" />
-                  <span>JMART Launchpad</span>
+                  <span>PACIFIC Launchpad</span>
                   <ChevronRight size={14} className="item-arrow" />
                 </button>
               </li>
@@ -521,7 +521,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   onClick={() => handleNav(role === 'SELLER' ? '/seller/dashboard' : '/register')}
                 >
                   <Briefcase size={16} className="item-icon" />
-                  <span>JMART Business</span>
+                  <span>PACIFIC Business</span>
                   <ChevronRight size={14} className="item-arrow" />
                 </button>
               </li>
@@ -543,7 +543,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   onClick={() => handleNav('/products?category_id=cat-007')}
                 >
                   <Sparkles size={16} className="item-icon" />
-                  <span>JMART Saheli</span>
+                  <span>PACIFIC Saheli</span>
                   <ChevronRight size={14} className="item-arrow" />
                 </button>
               </li>
@@ -554,7 +554,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   onClick={() => handleNav('/products?q=Custom')}
                 >
                   <Tag size={16} className="item-icon" />
-                  <span>JMART Custom</span>
+                  <span>PACIFIC Custom</span>
                   <ChevronRight size={14} className="item-arrow" />
                 </button>
               </li>

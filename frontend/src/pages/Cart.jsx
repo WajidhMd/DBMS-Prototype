@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDb } from '../context/DbContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import api from '../services/api';
 import {
   ShoppingCart,
@@ -16,13 +17,15 @@ import {
   Bookmark,
   Tag,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Heart
 } from 'lucide-react';
 
 export default function Cart() {
   const { user } = useAuth();
   const { targetDb } = useDb();
   const { cart, loading, updateQuantity, removeFromCart, clearCart, addToCart } = useCart();
+  const { addToWishlist } = useWishlist();
   const navigate = useNavigate();
 
   // Save for Later State (persisted in localStorage)
@@ -36,13 +39,13 @@ export default function Cart() {
 
   useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem('jmart_saved_for_later') || '[]');
+      const stored = JSON.parse((localStorage.getItem('pacific_saved_for_later') || localStorage.getItem('pacific_saved_for_later')) || '[]');
       setSavedForLater(stored);
     } catch (_) {}
 
     // Load any previously applied coupon
     try {
-      const storedCoupon = JSON.parse(sessionStorage.getItem('jmart_applied_coupon') || 'null');
+      const storedCoupon = JSON.parse((sessionStorage.getItem('pacific_applied_coupon') || sessionStorage.getItem('pacific_applied_coupon')) || 'null');
       if (storedCoupon) setAppliedCoupon(storedCoupon);
     } catch (_) {}
   }, []);
@@ -59,7 +62,21 @@ export default function Cart() {
     if (!window.confirm('Clear all items from your cart?')) return;
     await clearCart();
     setAppliedCoupon(null);
-    sessionStorage.removeItem('jmart_applied_coupon');
+    sessionStorage.removeItem('pacific_applied_coupon');
+  };
+
+  // Move item from active cart to Wishlist
+  const handleMoveToWishlist = async (item) => {
+    const productData = item.product || {
+      product_id: item.product_id,
+      product_name: item.product?.product_name || 'Product',
+      brand: item.product?.brand || 'Brand',
+      mrp: item.unit_price,
+      image_url: item.product?.image_url || '',
+      stock_qty: item.product?.stock_qty || 10
+    };
+    await addToWishlist(productData);
+    await removeFromCart(item.product_id);
   };
 
   // Move item from active cart to Saved for Later
@@ -75,7 +92,7 @@ export default function Cart() {
 
     const updated = [itemToSave, ...savedForLater.filter(s => s.product_id !== item.product_id)];
     setSavedForLater(updated);
-    localStorage.setItem('jmart_saved_for_later', JSON.stringify(updated));
+    localStorage.setItem('pacific_saved_for_later', JSON.stringify(updated));
 
     await removeFromCart(item.product_id);
   };
@@ -92,13 +109,13 @@ export default function Cart() {
 
     const updated = savedForLater.filter(s => s.product_id !== savedItem.product_id);
     setSavedForLater(updated);
-    localStorage.setItem('jmart_saved_for_later', JSON.stringify(updated));
+    localStorage.setItem('pacific_saved_for_later', JSON.stringify(updated));
   };
 
   const handleRemoveSaved = (productId) => {
     const updated = savedForLater.filter(s => s.product_id !== productId);
     setSavedForLater(updated);
-    localStorage.setItem('jmart_saved_for_later', JSON.stringify(updated));
+    localStorage.setItem('pacific_saved_for_later', JSON.stringify(updated));
   };
 
   // Coupon Code Validation
@@ -115,12 +132,12 @@ export default function Cart() {
       });
 
       setAppliedCoupon(res.data);
-      sessionStorage.setItem('jmart_applied_coupon', JSON.stringify(res.data));
+      sessionStorage.setItem('pacific_applied_coupon', JSON.stringify(res.data));
       setCouponMsg({ text: `Coupon '${res.data.code}' applied successfully! Saved ₹${res.data.discountAmount}`, type: 'success' });
     } catch (err) {
       setCouponMsg({ text: err.response?.data?.error || 'Invalid coupon code.', type: 'error' });
       setAppliedCoupon(null);
-      sessionStorage.removeItem('jmart_applied_coupon');
+      sessionStorage.removeItem('pacific_applied_coupon');
     } finally {
       setCouponLoading(false);
     }
@@ -130,7 +147,7 @@ export default function Cart() {
     setAppliedCoupon(null);
     setCouponCode('');
     setCouponMsg({ text: '', type: '' });
-    sessionStorage.removeItem('jmart_applied_coupon');
+    sessionStorage.removeItem('pacific_applied_coupon');
   };
 
   const handleProceedToCheckout = () => {
@@ -251,6 +268,20 @@ export default function Cart() {
                           {item.product?.product_name || 'Product'}
                         </strong>
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Brand: {item.product?.brand}</span>
+                        {item.attributes && (
+                          <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            {item.attributes.color && (
+                              <span style={{ fontSize: '0.72rem', background: 'rgba(198, 161, 91, 0.15)', border: '1px solid rgba(198, 161, 91, 0.3)', color: 'var(--color-primary)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 600 }}>
+                                Color: {item.attributes.color}
+                              </span>
+                            )}
+                            {item.attributes.variant && (
+                              <span style={{ fontSize: '0.72rem', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                                Option: {item.attributes.variant}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>
@@ -280,10 +311,17 @@ export default function Cart() {
                       </td>
 
                       <td style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.65rem', alignItems: 'center' }}>
+                          <button
+                            onClick={() => handleMoveToWishlist(item)}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}
+                            title="Move to Wishlist"
+                          >
+                            <Heart size={14} color="var(--color-primary)" /> Wishlist
+                          </button>
                           <button
                             onClick={() => handleSaveForLater(item)}
-                            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem' }}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}
                             title="Save for Later"
                           >
                             <Bookmark size={14} color="var(--color-primary)" /> Save

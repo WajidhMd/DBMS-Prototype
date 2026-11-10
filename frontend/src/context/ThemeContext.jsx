@@ -4,12 +4,12 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('jmart_theme') || 'light';
+    return (localStorage.getItem('pacific_theme') || localStorage.getItem('jmart_theme')) || 'light';
   });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('jmart_theme', theme);
+    localStorage.setItem('pacific_theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {

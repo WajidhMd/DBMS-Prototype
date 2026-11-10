@@ -154,7 +154,7 @@ export async function postProductQuestion(req, res) {
       asked_by: req.user ? (req.user.email.split('@')[0]) : 'Verified Buyer',
       date: new Date().toISOString().split('T')[0],
       answer: 'Thanks for your question! The seller will post a response shortly.',
-      answered_by: 'JMART Support Team',
+      answered_by: 'PACIFIC Support Team',
       is_seller: false
     };
 

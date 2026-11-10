@@ -15,10 +15,10 @@ import {
 import './AIChatbot.css';
 
 const QUICK_PROMPTS = [
-  { icon: Tag, text: 'Active discount coupons', query: 'What coupons can I use on JMART?' },
+  { icon: Tag, text: 'Active discount coupons', query: 'What coupons can I use on PACIFIC?' },
   { icon: Truck, text: 'Track my package', query: 'How can I track my order delivery?' },
   { icon: RotateCcw, text: 'Return & Exchange policy', query: 'What is your return and exchange policy?' },
-  { icon: Database, text: 'PostgreSQL vs MongoDB', query: 'How does dual-database switching work in JMART?' }
+  { icon: Database, text: 'PostgreSQL vs MongoDB', query: 'How does dual-database switching work in PACIFIC?' }
 ];
 
 export default function AIChatbot() {
@@ -28,7 +28,7 @@ export default function AIChatbot() {
     {
       id: 1,
       sender: 'bot',
-      text: 'Hello! I am JMART AI Assistant. How can I assist your luxury shopping experience today?',
+      text: 'Hello! I am PACIFIC AI Assistant. How can I assist your luxury shopping experience today?',
       time: 'Just now'
     }
   ]);
@@ -49,7 +49,7 @@ export default function AIChatbot() {
     const q = userQuery.toLowerCase();
 
     if (q.includes('coupon') || q.includes('discount') || q.includes('promo') || q.includes('code') || q.includes('offer')) {
-      return `Here are the active JMART promo coupons you can apply at checkout:\n\n• **JMART20**: 20% OFF up to ₹1,000 on orders over ₹500\n• **GOLD500**: Flat ₹500 OFF on orders above ₹2,000\n• **FESTIVE10**: 10% OFF on all orders\n• **WELCOME100**: Flat ₹100 Welcome bonus for first-time shoppers!\n\nEnter any of these in your Shopping Cart summary!`;
+      return `Here are the active PACIFIC promo coupons you can apply at checkout:\n\n• **PACIFIC20**: 20% OFF up to ₹1,000 on orders over ₹500\n• **GOLD500**: Flat ₹500 OFF on orders above ₹2,000\n• **FESTIVE10**: 10% OFF on all orders\n• **WELCOME100**: Flat ₹100 Welcome bonus for first-time shoppers!\n\nEnter any of these in your Shopping Cart summary!`;
     }
 
     if (q.includes('track') || q.includes('courier') || q.includes('awb') || q.includes('ship') || q.includes('delivery')) {
@@ -57,18 +57,18 @@ export default function AIChatbot() {
     }
 
     if (q.includes('return') || q.includes('exchange') || q.includes('replace') || q.includes('refund')) {
-      return `JMART offers a **7-Day Hassle-Free Replacement & Return Guarantee**! \n\n• **Exchange**: Pick a different size or color on the Orders page for free doorstep reverse pickup.\n• **Cancellation**: You can cancel any order prior to dispatch with instant refund directly to your payment source.`;
+      return `PACIFIC offers a **7-Day Hassle-Free Replacement & Return Guarantee**! \n\n• **Exchange**: Pick a different size or color on the Orders page for free doorstep reverse pickup.\n• **Cancellation**: You can cancel any order prior to dispatch with instant refund directly to your payment source.`;
     }
 
     if (q.includes('database') || q.includes('postgres') || q.includes('mongo') || q.includes('dbms')) {
-      return `JMART is powered by an enterprise dual-database architecture! Use the top navigation pills to switch between **PostgreSQL (Relational)** and **MongoDB (Document-Store)** dynamically. When products are updated in PostgreSQL, changes are dual-written to keep MongoDB synchronized in real-time.`;
+      return `PACIFIC is powered by an enterprise dual-database architecture! Use the top navigation pills to switch between **PostgreSQL (Relational)** and **MongoDB (Document-Store)** dynamically. When products are updated in PostgreSQL, changes are dual-written to keep MongoDB synchronized in real-time.`;
     }
 
     if (q.includes('pincode') || q.includes('speed') || q.includes('express') || q.includes('same-day')) {
       return `We provide tiered delivery speeds across Indian PIN codes:\n• **Same-Day VIP Delivery** (Bangalore, Delhi, Mumbai, Hyderabad)\n• **Next-Day Express**\n• **Standard Free Shipping** on orders above ₹499.\nCheck deliverability directly on any product page!`;
     }
 
-    return `Thank you for your message! Our concierge support team is here to assist with catalog recommendations, order fulfillment, express delivery, or returns. Feel free to explore our product categories or check out with our active promo code **JMART20**!`;
+    return `Thank you for your message! Our concierge support team is here to assist with catalog recommendations, order fulfillment, express delivery, or returns. Feel free to explore our product categories or check out with our active promo code **PACIFIC20**!`;
   };
 
   const handleSend = (textToSend) => {
@@ -107,14 +107,14 @@ export default function AIChatbot() {
           type="button"
           className="chatbot-floating-trigger"
           onClick={() => setIsOpen(true)}
-          title="Open JMART Concierge & AI Support"
+          title="Open PACIFIC Concierge & AI Support"
           aria-label="Open AI Assistant"
         >
           <div className="trigger-icon-wrap">
             <Sparkles size={18} className="trigger-sparkle" />
             <Bot size={22} className="trigger-bot" />
           </div>
-          <span className="trigger-label">JMART AI</span>
+          <span className="trigger-label">PACIFIC AI</span>
         </button>
       )}
 
@@ -128,7 +128,7 @@ export default function AIChatbot() {
                 <Bot size={18} />
               </div>
               <div>
-                <div className="chatbot-title">JMART Concierge AI</div>
+                <div className="chatbot-title">PACIFIC Concierge AI</div>
                 <div className="chatbot-status">
                   <span className="status-dot"></span> Online · Instant Support
                 </div>

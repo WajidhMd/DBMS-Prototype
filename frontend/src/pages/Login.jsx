@@ -109,16 +109,9 @@ export default function Login() {
         {/* Left Showcase Branding Panel */}
         <div className="auth-brand-panel">
           {/* Logo */}
-          <div className="auth-logo-wrap">
-            <div className="logo-main">
-              <span className="logo-text">jmart</span>
-              <span className="logo-domain">.in</span>
-            </div>
-            <svg className="jmart-smile-curve" viewBox="0 0 100 24" width="85" height="18">
-              <path d="M 6 6 Q 50 25 90 7" fill="transparent" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" />
-              <path d="M 84 4 L 92 7 L 85 13 Z" fill="var(--color-primary)" stroke="var(--color-primary)" strokeWidth="1" strokeLinejoin="round" />
-            </svg>
-          </div>
+          <Link to="/" className="auth-logo-wrap" style={{ textDecoration: 'none', display: 'inline-block' }} title="PACIFIC Home">
+            <img src="/images/pacific_logo.png" alt="PACIFIC" style={{ height: '42px', width: 'auto', objectFit: 'contain', display: 'block' }} />
+          </Link>
 
           <p className="auth-brand-tagline">
             Multi-Database E-Commerce Management System
@@ -174,7 +167,7 @@ export default function Login() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
             <div className="auth-form-header" style={{ marginBottom: 0 }}>
               <h2 className="auth-welcome-title">Welcome Back</h2>
-              <p className="auth-welcome-subtitle">Sign in to your JMART account</p>
+              <p className="auth-welcome-subtitle">Sign in to your PACIFIC account</p>
             </div>
             {/* Theme Toggle Button */}
             <button
@@ -266,7 +259,7 @@ export default function Login() {
             </div>
 
             <button type="submit" className="btn-jmart-submit" disabled={loading}>
-              <LogIn size={18} /> {loading ? 'Authenticating...' : 'Sign In to JMART'}
+              <LogIn size={18} /> {loading ? 'Authenticating...' : 'Sign In to PACIFIC'}
             </button>
           </form>
 

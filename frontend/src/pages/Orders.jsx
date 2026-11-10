@@ -312,7 +312,7 @@ export default function Orders() {
                       </button>
 
                       {/* Customer Cancel Order Button (Pre-dispatch) */}
-                      {role === 'CUSTOMER' && ['ORDER_PLACED', 'PENDING_EMPLOYEE', 'PENDING', 'SENT_TO_SELLER', 'ORDER_CONFIRMED', 'PROCESSING'].includes((ord.order_status || '').toUpperCase()) && (
+                      {role === 'CUSTOMER' && ['ORDER_PLACED', 'PENDING_EMPLOYEE', 'PENDING', 'SENT_TO_SELLER', 'ORDER_CONFIRMED', 'CONFIRMED', 'PROCESSING', 'PACKED'].includes((ord.order_status || '').toUpperCase()) && (
                         <button
                           onClick={() => setCancelOrderObj(ord)}
                           style={{
@@ -444,7 +444,16 @@ export default function Orders() {
                           <tbody>
                             {ord.items?.map((item, idx) => (
                               <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <td style={{ padding: '0.5rem', fontWeight: 600 }}>{item.product_name}</td>
+                                <td style={{ padding: '0.5rem', fontWeight: 600 }}>
+                                  <div>{item.product_name}</div>
+                                  {item.attributes && (
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 500, marginTop: '0.15rem' }}>
+                                      {item.attributes.color ? `Color: ${item.attributes.color}` : ''}
+                                      {item.attributes.color && item.attributes.variant ? ' • ' : ''}
+                                      {item.attributes.variant ? item.attributes.variant : ''}
+                                    </div>
+                                  )}
+                                </td>
                                 <td style={{ padding: '0.5rem', color: 'var(--text-secondary)' }}>{item.brand}</td>
                                 <td style={{ padding: '0.5rem' }}>₹{parseFloat(item.unit_price).toFixed(2)}</td>
                                 <td style={{ padding: '0.5rem' }}>{item.quantity}</td>

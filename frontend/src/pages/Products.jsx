@@ -517,8 +517,211 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Products Grid */}
-        {loading ? (
+        {/* Catalog Layout with Faceted Sidebar & Products Grid */}
+        <div className="catalog-layout-container">
+          {/* Faceted Sidebar Filter Panel */}
+          <aside className="catalog-faceted-sidebar">
+            <div className="sidebar-heading-row">
+              <span className="sidebar-title">
+                <Filter size={16} /> Faceted Filters
+              </span>
+              {(selectedCategory || selectedBrand || minPrice || maxPrice || minRating || minDiscount || inStockOnly || search) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setSelectedCategory('');
+                    setSelectedBrand('');
+                    setMinPrice('');
+                    setMaxPrice('');
+                    setSortBy('');
+                    setMinRating('');
+                    setMinDiscount('');
+                    setInStockOnly(false);
+                    setActivePopularTile(null);
+                    setCurrentPage(1);
+                  }}
+                  className="sidebar-reset-btn"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+
+            {/* Price Range Slider */}
+            <div>
+              <span className="sidebar-section-title">
+                Price Range: ₹{minPrice || 0} – {maxPrice ? `₹${Number(maxPrice).toLocaleString('en-IN')}` : '₹1,50,000+'}
+              </span>
+              <input
+                type="range"
+                min="500"
+                max="150000"
+                step="1000"
+                value={maxPrice || 150000}
+                onChange={(e) => {
+                  setMaxPrice(e.target.value === '150000' ? '' : e.target.value);
+                  setCurrentPage(1);
+                }}
+                style={{ width: '100%', accentColor: 'var(--color-primary)', cursor: 'pointer', marginBottom: '0.5rem' }}
+              />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                <input
+                  type="number"
+                  placeholder="Min ₹"
+                  value={minPrice}
+                  onChange={(e) => {
+                    setMinPrice(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  style={{ width: '100%', padding: '0.35rem 0.5rem', borderRadius: 'var(--radius-button)', border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '0.78rem' }}
+                />
+                <input
+                  type="number"
+                  placeholder="Max ₹"
+                  value={maxPrice}
+                  onChange={(e) => {
+                    setMaxPrice(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  style={{ width: '100%', padding: '0.35rem 0.5rem', borderRadius: 'var(--radius-button)', border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '0.78rem' }}
+                />
+              </div>
+
+              {/* Quick Price Bracket Pills */}
+              <div className="price-bracket-pills">
+                <button
+                  type="button"
+                  className={`price-pill ${maxPrice === '1000' ? 'active' : ''}`}
+                  onClick={() => { setMinPrice(''); setMaxPrice('1000'); setCurrentPage(1); }}
+                >
+                  Under ₹1K
+                </button>
+                <button
+                  type="button"
+                  className={`price-pill ${minPrice === '1000' && maxPrice === '10000' ? 'active' : ''}`}
+                  onClick={() => { setMinPrice('1000'); setMaxPrice('10000'); setCurrentPage(1); }}
+                >
+                  ₹1K - ₹10K
+                </button>
+                <button
+                  type="button"
+                  className={`price-pill ${minPrice === '10000' && maxPrice === '50000' ? 'active' : ''}`}
+                  onClick={() => { setMinPrice('10000'); setMaxPrice('50000'); setCurrentPage(1); }}
+                >
+                  ₹10K - ₹50K
+                </button>
+                <button
+                  type="button"
+                  className={`price-pill ${minPrice === '50000' ? 'active' : ''}`}
+                  onClick={() => { setMinPrice('50000'); setMaxPrice(''); setCurrentPage(1); }}
+                >
+                  Above ₹50K
+                </button>
+              </div>
+            </div>
+
+            {/* Brands Checkbox List */}
+            <div>
+              <span className="sidebar-section-title">Brand Selection</span>
+              <div className="brand-checklist">
+                {uniqueBrands.map((b) => {
+                  const count = products.filter(p => p.brand === b).length;
+                  const isChecked = selectedBrand.toLowerCase() === b.toLowerCase();
+                  return (
+                    <label key={b} className={`brand-check-item ${isChecked ? 'active' : ''}`}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedBrand(isChecked ? '' : b);
+                            setCurrentPage(1);
+                          }}
+                          style={{ accentColor: 'var(--color-primary)' }}
+                        />
+                        {b}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>({count})</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Minimum Star Rating */}
+            <div>
+              <span className="sidebar-section-title">Customer Ratings</span>
+              <div className="rating-filter-group">
+                {[
+                  { label: '4.7★ & above (Top Rated)', val: '4.7' },
+                  { label: '4.5★ & above', val: '4.5' },
+                  { label: '4.0★ & above', val: '4.0' }
+                ].map((r) => (
+                  <label key={r.val} className={`rating-filter-row ${minRating === r.val ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="sidebar_min_rating"
+                      checked={minRating === r.val}
+                      onChange={() => {
+                        setMinRating(minRating === r.val ? '' : r.val);
+                        setCurrentPage(1);
+                      }}
+                      style={{ accentColor: 'var(--color-primary)' }}
+                    />
+                    <span>{r.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Deals & Discount */}
+            <div>
+              <span className="sidebar-section-title">Deals & Offers</span>
+              <div className="rating-filter-group">
+                {[
+                  { label: '15% OFF or more', val: '15' },
+                  { label: '20% OFF or more', val: '20' },
+                  { label: '25% OFF or more', val: '25' }
+                ].map((d) => (
+                  <label key={d.val} className={`rating-filter-row ${minDiscount === d.val ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="sidebar_min_discount"
+                      checked={minDiscount === d.val}
+                      onChange={() => {
+                        setMinDiscount(minDiscount === d.val ? '' : d.val);
+                        setCurrentPage(1);
+                      }}
+                      style={{ accentColor: 'var(--color-primary)' }}
+                    />
+                    <span>{d.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* In-Stock Availability Toggle */}
+            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', cursor: 'pointer', color: inStockOnly ? 'var(--color-primary)' : 'var(--color-text)', fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={inStockOnly}
+                  onChange={(e) => {
+                    setInStockOnly(e.target.checked);
+                    setCurrentPage(1);
+                  }}
+                  style={{ accentColor: 'var(--color-primary)' }}
+                />
+                In Stock Only
+              </label>
+            </div>
+          </aside>
+
+          {/* Right Column: Products Grid & Pagination */}
+          <div className="catalog-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
+            {/* Products Grid */}
+            {loading ? (
           <div className="jmart-loading-box">
             <div className="loading-spinner"></div>
             <p>Fetching active catalog from {targetDb.toUpperCase()} database...</p>
@@ -583,7 +786,7 @@ export default function Products() {
                     </Link>
 
                     <div className="product-brand-line">
-                      {p.brand || 'JMART Choice'}
+                      {p.brand || 'PACIFIC Choice'}
                     </div>
 
                     {/* Star Ratings: ★★★★★ 4.8 (21 032 reviews) */}
@@ -667,6 +870,8 @@ export default function Products() {
             </button>
           </div>
         )}
+          </div>
+        </div>
       </section>
     </div>
   );

@@ -286,7 +286,7 @@ export async function cancelOrder(req, res) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
-    const cancellableStatuses = ['ORDER_PLACED', 'PENDING_EMPLOYEE', 'SENT_TO_SELLER', 'ORDER_CONFIRMED', 'PROCESSING'];
+    const cancellableStatuses = ['ORDER_PLACED', 'PENDING_EMPLOYEE', 'SENT_TO_SELLER', 'ORDER_CONFIRMED', 'CONFIRMED', 'PROCESSING', 'PACKED'];
     const currentStatus = (order.order_status || '').toUpperCase();
     if (!cancellableStatuses.includes(currentStatus)) {
       return res.status(400).json({

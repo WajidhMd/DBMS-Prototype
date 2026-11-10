@@ -26,7 +26,7 @@ export const CartProvider = ({ children }) => {
   // Helper to load guest cart from localStorage
   const getGuestCartFromStorage = () => {
     try {
-      const saved = localStorage.getItem('jmart_guest_cart');
+      const saved = localStorage.getItem('pacific_guest_cart') || localStorage.getItem('pacific_guest_cart');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed.items)) {
@@ -72,17 +72,17 @@ export const CartProvider = ({ children }) => {
       }
     };
 
-    window.addEventListener('jmart-cart-update', handleCartUpdate);
+    window.addEventListener('pacific-cart-update', handleCartUpdate);
     window.addEventListener('storage', handleCartUpdate);
 
     return () => {
-      window.removeEventListener('jmart-cart-update', handleCartUpdate);
+      window.removeEventListener('pacific-cart-update', handleCartUpdate);
       window.removeEventListener('storage', handleCartUpdate);
     };
   }, [refreshCart, user]);
 
   // Add product to cart
-  const addToCart = async (product, quantity = 1) => {
+  const addToCart = async (product, quantity = 1, attributes = null) => {
     if (!product || !product.product_id) return { success: false, error: 'Invalid product.' };
 
     const qtyToAdd = Math.max(1, parseInt(quantity) || 1);
@@ -96,10 +96,11 @@ export const CartProvider = ({ children }) => {
       try {
         const res = await api.post('/cart', {
           product_id: product.product_id,
-          quantity: qtyToAdd
+          quantity: qtyToAdd,
+          attributes
         });
         setCart(res.data);
-        window.dispatchEvent(new Event('jmart-cart-update'));
+        window.dispatchEvent(new Event('pacific-cart-update'));
         return { success: true, cart: res.data };
       } catch (err) {
         const errorMsg = err.response?.data?.error || 'Failed to add item to cart.';
@@ -123,6 +124,7 @@ export const CartProvider = ({ children }) => {
           quantity: cappedQty,
           unit_price: unitPrice,
           subtotal: parseFloat((cappedQty * unitPrice).toFixed(2)),
+          attributes: attributes || existing.attributes || null,
           product: { ...existing.product, ...product }
         };
       } else {
@@ -133,14 +135,15 @@ export const CartProvider = ({ children }) => {
           quantity: cappedQty,
           unit_price: unitPrice,
           subtotal: parseFloat((cappedQty * unitPrice).toFixed(2)),
+          attributes: attributes || null,
           product
         });
       }
 
       const updatedCart = calculateGuestTotals(updatedItems);
-      localStorage.setItem('jmart_guest_cart', JSON.stringify(updatedCart));
+      localStorage.setItem('pacific_guest_cart', JSON.stringify(updatedCart));
       setCart(updatedCart);
-      window.dispatchEvent(new Event('jmart-cart-update'));
+      window.dispatchEvent(new Event('pacific-cart-update'));
       return { success: true, cart: updatedCart };
     }
   };
@@ -153,7 +156,7 @@ export const CartProvider = ({ children }) => {
       try {
         const res = await api.put(`/cart/${productId}`, { quantity: newQty });
         setCart(res.data);
-        window.dispatchEvent(new Event('jmart-cart-update'));
+        window.dispatchEvent(new Event('pacific-cart-update'));
         return { success: true, cart: res.data };
       } catch (err) {
         alert(err.response?.data?.error || 'Failed to update item quantity.');
@@ -182,9 +185,9 @@ export const CartProvider = ({ children }) => {
       }
 
       const updatedCart = calculateGuestTotals(updatedItems);
-      localStorage.setItem('jmart_guest_cart', JSON.stringify(updatedCart));
+      localStorage.setItem('pacific_guest_cart', JSON.stringify(updatedCart));
       setCart(updatedCart);
-      window.dispatchEvent(new Event('jmart-cart-update'));
+      window.dispatchEvent(new Event('pacific-cart-update'));
       return { success: true, cart: updatedCart };
     }
   };
@@ -195,7 +198,7 @@ export const CartProvider = ({ children }) => {
       try {
         const res = await api.delete(`/cart/${productId}`);
         setCart(res.data);
-        window.dispatchEvent(new Event('jmart-cart-update'));
+        window.dispatchEvent(new Event('pacific-cart-update'));
         return { success: true, cart: res.data };
       } catch (err) {
         alert('Failed to remove item from cart.');
@@ -205,9 +208,9 @@ export const CartProvider = ({ children }) => {
       const currentCart = getGuestCartFromStorage();
       const updatedItems = currentCart.items.filter(i => i.product_id !== productId);
       const updatedCart = calculateGuestTotals(updatedItems);
-      localStorage.setItem('jmart_guest_cart', JSON.stringify(updatedCart));
+      localStorage.setItem('pacific_guest_cart', JSON.stringify(updatedCart));
       setCart(updatedCart);
-      window.dispatchEvent(new Event('jmart-cart-update'));
+      window.dispatchEvent(new Event('pacific-cart-update'));
       return { success: true, cart: updatedCart };
     }
   };
@@ -218,17 +221,17 @@ export const CartProvider = ({ children }) => {
       try {
         const res = await api.delete('/cart/clear');
         setCart(res.data);
-        window.dispatchEvent(new Event('jmart-cart-update'));
+        window.dispatchEvent(new Event('pacific-cart-update'));
         return { success: true };
       } catch (err) {
         alert('Failed to clear cart.');
         return { success: false };
       }
     } else {
-      localStorage.removeItem('jmart_guest_cart');
+      localStorage.removeItem('pacific_guest_cart');
       const emptyCart = { items: [], items_total: 0, grand_total: 0 };
       setCart(emptyCart);
-      window.dispatchEvent(new Event('jmart-cart-update'));
+      window.dispatchEvent(new Event('pacific-cart-update'));
       return { success: true };
     }
   };
@@ -242,15 +245,16 @@ export const CartProvider = ({ children }) => {
       const payload = {
         items: guestCart.items.map(item => ({
           product_id: item.product_id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          attributes: item.attributes || null
         }))
       };
 
       const res = await api.post('/cart/sync', payload);
       // Only clear storage once sync succeeded
-      localStorage.removeItem('jmart_guest_cart');
+      localStorage.removeItem('pacific_guest_cart');
       setCart(res.data);
-      window.dispatchEvent(new Event('jmart-cart-update'));
+      window.dispatchEvent(new Event('pacific-cart-update'));
       return res.data;
     } catch (err) {
       console.error('Failed to sync guest cart:', err);

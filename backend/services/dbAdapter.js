@@ -753,6 +753,7 @@ export async function getCartByCustomerId(customerId, dbType = 'postgresql') {
       cart_id: ci.cart_id,
       product_id: ci.product_id,
       quantity: ci.quantity,
+      attributes: ci.attributes || null,
       product,
       unit_price: unitPrice,
       subtotal
@@ -772,7 +773,7 @@ export async function getCartByCustomerId(customerId, dbType = 'postgresql') {
   };
 }
 
-export async function addToCart(customerId, productId, quantity = 1, dbType = 'postgresql') {
+export async function addToCart(customerId, productId, quantity = 1, dbType = 'postgresql', attributes = null) {
   const store = getStore(dbType);
 
   const cart = await getCartByCustomerId(customerId, dbType);
@@ -780,11 +781,13 @@ export async function addToCart(customerId, productId, quantity = 1, dbType = 'p
 
   if (existing) {
     existing.quantity += parseInt(quantity);
+    if (attributes) existing.attributes = attributes;
   } else {
     store.cart_item.push({
       cart_id: cart.cart_id,
       product_id: productId,
-      quantity: parseInt(quantity)
+      quantity: parseInt(quantity),
+      attributes: attributes || null
     });
   }
 
@@ -1117,7 +1120,8 @@ export async function createOrder(orderPayload, dbType = 'postgresql') {
       order_id: orderId,
       product_id: item.product_id,
       quantity: item.quantity,
-      unit_price: item.unit_price
+      unit_price: item.unit_price,
+      attributes: item.attributes || null
     });
     // Decrease stock_qty
     const prod = store.products.find(p => p.product_id === item.product_id);
@@ -1165,7 +1169,7 @@ export async function getAllOrders(filters = {}, dbType = 'postgresql') {
     const addr = store.addresses.find(a => a.address_id === ord.address_id);
     const items = store.order_item.filter(oi => oi.order_id === ord.order_id).map(oi => {
       const prod = store.products.find(p => p.product_id === oi.product_id);
-      return { ...oi, product_name: prod ? prod.product_name : '', brand: prod ? prod.brand : '', seller_id: prod ? prod.seller_id : '', image_url: prod ? prod.image_url : '' };
+      return { ...oi, product_name: prod ? prod.product_name : '', brand: prod ? prod.brand : '', seller_id: prod ? prod.seller_id : '', image_url: prod ? prod.image_url : '', attributes: oi.attributes || null };
     });
     const pay = store.payments.find(p => p.order_id === ord.order_id);
     const history = store.order_history

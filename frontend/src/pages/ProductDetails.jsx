@@ -28,7 +28,8 @@ import {
   Layers,
   ShieldCheck,
   Clock,
-  X
+  X,
+  Bookmark
 } from 'lucide-react';
 
 const PRODUCT_COLORS = [
@@ -57,6 +58,60 @@ export default function ProductDetails() {
   // Variant States
   const [selectedColor, setSelectedColor] = useState(PRODUCT_COLORS[0]);
   const [selectedVariant, setSelectedVariant] = useState(PRODUCT_VARIANTS[0]);
+  const [isSavedForLater, setIsSavedForLater] = useState(false);
+
+  const getVariantOptions = () => {
+    if (!product) return PRODUCT_VARIANTS;
+    const cat = (product.category_name || '').toLowerCase();
+    if (cat.includes('cloth') || cat.includes('fashion') || cat.includes('apparel') || cat.includes('shirt') || cat.includes('shoe')) {
+      return ['S (Small)', 'M (Medium)', 'L (Large)', 'XL (Extra Large)', 'XXL'];
+    }
+    if (cat.includes('mobile') || cat.includes('phone') || cat.includes('electronic') || cat.includes('laptop') || cat.includes('computer')) {
+      return ['128GB Storage', '256GB Storage', '512GB Storage', '1TB Pro Max'];
+    }
+    return ['Standard Edition', 'Pro Edition', 'Max Luxury Edition'];
+  };
+
+  useEffect(() => {
+    if (product) {
+      try {
+        const saved = JSON.parse((localStorage.getItem('pacific_saved_for_later') || localStorage.getItem('pacific_saved_for_later')) || '[]');
+        setIsSavedForLater(saved.some(s => s.product_id === product.product_id));
+      } catch (_) {}
+      const opts = getVariantOptions();
+      if (!opts.includes(selectedVariant)) {
+        setSelectedVariant(opts[0]);
+      }
+    }
+  }, [product?.product_id]);
+
+  const handleToggleSaveForLater = () => {
+    if (!product) return;
+    try {
+      const saved = JSON.parse((localStorage.getItem('pacific_saved_for_later') || localStorage.getItem('pacific_saved_for_later')) || '[]');
+      const exists = saved.some(s => s.product_id === product.product_id);
+      let updated;
+      if (exists) {
+        updated = saved.filter(s => s.product_id !== product.product_id);
+        setIsSavedForLater(false);
+        setNotification({ message: `Removed "${product.product_name}" from Saved for Later`, type: 'info' });
+      } else {
+        const itemToSave = {
+          product_id: product.product_id,
+          product_name: product.product_name,
+          brand: product.brand,
+          mrp: product.mrp,
+          image_url: product.image_url,
+          quantity: 1
+        };
+        updated = [itemToSave, ...saved];
+        setIsSavedForLater(true);
+        setNotification({ message: `Saved "${product.product_name}" for later!`, type: 'success' });
+      }
+      localStorage.setItem('pacific_saved_for_later', JSON.stringify(updated));
+      setTimeout(() => setNotification(null), 3500);
+    } catch (_) {}
+  };
 
   // Pincode Deliverability State
   const [pincodeInput, setPincodeInput] = useState('560001');
@@ -109,9 +164,9 @@ export default function ProductDetails() {
       // Update Recently Viewed in localStorage
       if (prodData) {
         try {
-          const stored = JSON.parse(localStorage.getItem('jmart_recently_viewed') || '[]');
+          const stored = JSON.parse((localStorage.getItem('pacific_recently_viewed') || localStorage.getItem('pacific_recently_viewed')) || '[]');
           const updated = [prodData, ...stored.filter(p => p.product_id !== prodData.product_id)].slice(0, 5);
-          localStorage.setItem('jmart_recently_viewed', JSON.stringify(updated));
+          localStorage.setItem('pacific_recently_viewed', JSON.stringify(updated));
           setRecentlyViewed(updated.filter(p => p.product_id !== prodData.product_id));
         } catch (_) {}
 
@@ -197,7 +252,11 @@ export default function ProductDetails() {
       setNotification({ message: 'Product is currently out of stock.', type: 'error' });
       return;
     }
-    const res = await addToCart(product, quantity);
+    const attributes = {
+      color: selectedColor?.name,
+      variant: selectedVariant
+    };
+    const res = await addToCart(product, quantity, attributes);
     if (res.success) {
       setNotification({ message: `Added ${quantity} × "${product.product_name}" (${selectedColor.name}, ${selectedVariant}) to cart!`, type: 'success' });
       setTimeout(() => setNotification(null), 3500);
@@ -508,10 +567,10 @@ export default function ProductDetails() {
             {/* Product Variants: Editions / Capacities */}
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-                Edition / Size:
+                Variant / Size / Storage:
               </div>
-              <div style={{ display: 'flex', gap: '0.65rem' }}>
-                {PRODUCT_VARIANTS.map(v => (
+              <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                {getVariantOptions().map(v => (
                   <button
                     key={v}
                     type="button"
@@ -653,7 +712,7 @@ export default function ProductDetails() {
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', marginTop: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr auto auto', gap: '0.65rem', marginTop: '1rem' }}>
             <button
               onClick={handleAddToCart}
               disabled={product.stock_qty <= 0}
@@ -682,6 +741,27 @@ export default function ProductDetails() {
             >
               <Heart size={18} fill={isWishlisted(product.product_id) ? 'var(--color-primary)' : 'none'} color="var(--color-primary)" />
               <span>{isWishlisted(product.product_id) ? 'Wishlisted' : 'Wishlist'}</span>
+            </button>
+
+            <button
+              onClick={handleToggleSaveForLater}
+              style={{
+                padding: '0.85rem 1.15rem',
+                backgroundColor: isSavedForLater ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-card)',
+                border: `1px solid ${isSavedForLater ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                borderRadius: 'var(--radius-sm)',
+                color: isSavedForLater ? 'var(--color-primary)' : 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              title={isSavedForLater ? 'Remove from Saved' : 'Save for Later'}
+            >
+              <Bookmark size={18} fill={isSavedForLater ? 'var(--color-primary)' : 'none'} color="var(--color-primary)" />
+              <span>{isSavedForLater ? 'Saved' : 'Save for Later'}</span>
             </button>
           </div>
         </div>
@@ -766,7 +846,7 @@ export default function ProductDetails() {
         <form onSubmit={handleAddQuestionSubmit} style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem' }}>
           <input
             type="text"
-            placeholder="Have a question? Ask the seller or JMART verified buyers..."
+            placeholder="Have a question? Ask the seller or PACIFIC verified buyers..."
             value={newQuestion}
             onChange={(e) => setNewQuestion(e.target.value)}
             style={{

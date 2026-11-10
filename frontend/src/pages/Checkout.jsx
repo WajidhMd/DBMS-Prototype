@@ -48,6 +48,36 @@ export default function Checkout() {
 
   // Applied Coupon from session
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [checkoutCouponCode, setCheckoutCouponCode] = useState('');
+  const [checkoutCouponLoading, setCheckoutCouponLoading] = useState(false);
+  const [checkoutCouponMsg, setCheckoutCouponMsg] = useState({ text: '', type: '' });
+
+  const handleApplyCheckoutCoupon = async (e) => {
+    e?.preventDefault();
+    if (!checkoutCouponCode.trim()) return;
+    try {
+      setCheckoutCouponLoading(true);
+      setCheckoutCouponMsg({ text: '', type: '' });
+      const res = await api.post('/cart/coupon', {
+        code: checkoutCouponCode.trim(),
+        cartTotal: cart?.grand_total || 0
+      });
+      setAppliedCoupon(res.data);
+      sessionStorage.setItem('pacific_applied_coupon', JSON.stringify(res.data));
+      setCheckoutCouponMsg({ text: `Coupon '${res.data.code}' applied! Saved ₹${res.data.discountAmount}`, type: 'success' });
+    } catch (err) {
+      setCheckoutCouponMsg({ text: err.response?.data?.error || 'Invalid coupon.', type: 'error' });
+    } finally {
+      setCheckoutCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCheckoutCoupon = () => {
+    setAppliedCoupon(null);
+    setCheckoutCouponCode('');
+    setCheckoutCouponMsg({ text: '', type: '' });
+    sessionStorage.removeItem('pacific_applied_coupon');
+  };
 
   // Add Address Modal state
   const [showAddrModal, setShowAddrModal] = useState(false);
@@ -63,7 +93,7 @@ export default function Checkout() {
   useEffect(() => {
     fetchCheckoutData();
     try {
-      const storedCoupon = JSON.parse(sessionStorage.getItem('jmart_applied_coupon') || 'null');
+      const storedCoupon = JSON.parse((sessionStorage.getItem('pacific_applied_coupon') || sessionStorage.getItem('pacific_applied_coupon')) || 'null');
       if (storedCoupon) setAppliedCoupon(storedCoupon);
     } catch (_) {}
   }, [targetDb]);
@@ -125,7 +155,7 @@ export default function Checkout() {
       });
 
       // Clear applied coupon from storage upon order placement
-      sessionStorage.removeItem('jmart_applied_coupon');
+      sessionStorage.removeItem('pacific_applied_coupon');
       setCreatedOrder(res.data);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to place order.');
@@ -152,7 +182,7 @@ export default function Checkout() {
           <CheckCircle size={56} color="var(--color-primary)" style={{ margin: '0 auto 1rem' }} />
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>Order Placed Successfully!</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-            Thank you for shopping with JMART! Your order ID is <strong style={{ color: 'var(--text-primary)' }}>#{createdOrder.order_id}</strong>.
+            Thank you for shopping with PACIFIC! Your order ID is <strong style={{ color: 'var(--text-primary)' }}>#{createdOrder.order_id}</strong>.
           </p>
 
           <div style={{
@@ -207,7 +237,7 @@ export default function Checkout() {
               className="btn-secondary-outline"
               style={{ width: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              <Truck size={16} /> Track Order in JMART
+              <Truck size={16} /> Track Order in PACIFIC
             </Link>
           </div>
         </div>
@@ -477,14 +507,61 @@ export default function Checkout() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem', maxHeight: '180px', overflowY: 'auto' }}>
             {items.map(item => (
-              <div key={item.product_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>{item.product?.product_name} (x{item.quantity})</span>
+              <div key={item.product_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', alignItems: 'flex-start' }}>
+                <div>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.product?.product_name || 'Product'} (x{item.quantity})</span>
+                  {item.attributes && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-primary)', marginTop: '0.15rem' }}>
+                      {item.attributes.color ? `Color: ${item.attributes.color}` : ''}
+                      {item.attributes.color && item.attributes.variant ? ' • ' : ''}
+                      {item.attributes.variant ? item.attributes.variant : ''}
+                    </div>
+                  )}
+                </div>
                 <strong style={{ color: 'var(--text-primary)' }}>₹{parseFloat(item.subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
               </div>
             ))}
           </div>
 
           <hr style={{ border: 0, height: '1px', background: 'var(--border-color)', margin: '1rem 0' }} />
+
+          {/* Coupon Code Input in Checkout */}
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
+              <Tag size={13} /> Promo Code / Voucher
+            </label>
+            {appliedCoupon ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
+                <span style={{ color: '#22c55e', fontWeight: 700 }}>{appliedCoupon.code} (-₹{appliedCoupon.discountAmount})</span>
+                <button type="button" onClick={handleRemoveCheckoutCoupon} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <input
+                  type="text"
+                  placeholder="e.g. PACIFIC20 or GOLD500"
+                  value={checkoutCouponCode}
+                  onChange={(e) => setCheckoutCouponCode(e.target.value.toUpperCase())}
+                  style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.35rem 0.5rem', borderRadius: '4px', fontSize: '0.78rem', textTransform: 'uppercase' }}
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCheckoutCoupon}
+                  disabled={checkoutCouponLoading || !checkoutCouponCode.trim()}
+                  style={{ background: 'var(--color-primary)', color: '#000', border: 'none', borderRadius: '4px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {checkoutCouponLoading ? '...' : 'Apply'}
+                </button>
+              </div>
+            )}
+            {checkoutCouponMsg.text && (
+              <div style={{ fontSize: '0.72rem', marginTop: '0.35rem', color: checkoutCouponMsg.type === 'error' ? '#f87171' : '#22c55e' }}>
+                {checkoutCouponMsg.text}
+              </div>
+            )}
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>

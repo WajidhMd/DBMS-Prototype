@@ -189,16 +189,14 @@ export default function Navbar({ onOpenSidebar }) {
           <span className="hamburger-text">All</span>
         </button>
 
-        {/* JMART Brand Logo with Gold Smile */}
-        <Link to="/" className="jmart-logo navbar-logo">
-          <div className="logo-main">
-            <span className="logo-text">jmart</span>
-            <span className="logo-domain">.in</span>
-          </div>
-          <svg className="jmart-smile-curve" viewBox="0 0 100 24" width="76" height="15">
-            <path d="M 6 6 Q 50 25 90 7" fill="transparent" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" />
-            <path d="M 84 4 L 92 7 L 85 13 Z" fill="var(--color-primary)" stroke="var(--color-primary)" strokeWidth="1" strokeLinejoin="round" />
-          </svg>
+        {/* PACIFIC Brand Logo */}
+        <Link to="/" className="jmart-logo navbar-logo" title="PACIFIC Home" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <img
+            src="/images/pacific_logo.png"
+            alt="PACIFIC"
+            className="pacific-logo-img"
+            style={{ height: '38px', width: 'auto', objectFit: 'contain', display: 'block' }}
+          />
         </Link>
 
         {/* Advanced Global Search Bar with Auto-suggest, Voice & Visual Search */}

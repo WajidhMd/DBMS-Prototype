@@ -81,7 +81,7 @@ export function getOrderTrackingInfo(req, res) {
   const timeline = [
     {
       status: 'Order Placed',
-      location: 'JMART Central Fulfillment Center, Bengaluru',
+      location: 'PACIFIC Central Fulfillment Center, Bengaluru',
       timestamp: t0,
       completed: true
     },

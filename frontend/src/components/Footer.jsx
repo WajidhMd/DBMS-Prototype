@@ -26,7 +26,7 @@ export default function Footer() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <strong style={{ color: 'var(--color-text)', fontSize: '0.95rem', letterSpacing: '-0.02em' }}>
-            jmart<span style={{ color: 'var(--color-primary)' }}>.in</span>
+            <img src="/images/pacific_logo.png" alt="PACIFIC" style={{ height: "26px", width: "auto", objectFit: "contain", verticalAlign: "middle" }} />
           </strong>
         </div>
 
@@ -36,7 +36,7 @@ export default function Footer() {
             <span>Active DB Engine: <strong style={{ color: 'var(--color-text)', textTransform: 'uppercase' }}>{targetDb}</strong></span>
           </div>
           <span>•</span>
-          <span>© 2026 JMART E-Commerce</span>
+          <span>© 2026 PACIFIC E-Commerce</span>
         </div>
       </div>
     </footer>

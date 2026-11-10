@@ -11,7 +11,7 @@ export default function HelpModal({ onClose }) {
               <Database size={20} />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>JMART DBMS Guide</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>PACIFIC DBMS Guide</h2>
               <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>Multi-Database Architecture & Features</span>
             </div>
           </div>
@@ -78,7 +78,7 @@ export default function HelpModal({ onClose }) {
             className="btn-primary-block"
             style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem' }}
           >
-            Got it, continue exploring JMART
+            Got it, continue exploring PACIFIC
           </button>
         </div>
       </div>
