@@ -99,16 +99,13 @@ app.get('/api/sellers', async (req, res) => {
   }
 });
 
-// Root & Health check endpoints for Railway / Uptime monitors
-app.get('/', (req, res) => {
-  res.json({
-    status: 'online',
-    service: 'Pacific E-Commerce DBMS API',
-    version: '1.0.0',
-    timestamp: new Date().toISOString()
-  });
-});
+// Serve frontend build if collocated
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+}
 
+// Health check endpoints for cloud monitors
 app.get('/health', (req, res) => {
   res.json({
     status: 'online',
@@ -124,13 +121,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve frontend build if collocated
-const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 if (fs.existsSync(frontendDistPath)) {
-  app.use(express.static(frontendDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path === '/health') return next();
     res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.json({
+      status: 'online',
+      service: 'Pacific E-Commerce DBMS API',
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    });
   });
 }
 
