@@ -17,3 +17,4 @@ steps:
 images:
   - 'gcr.io/$PROJECT_ID/ecommerce-backend:latest'
   - 'gcr.io/$PROJECT_ID/ecommerce-frontend:latest'
+

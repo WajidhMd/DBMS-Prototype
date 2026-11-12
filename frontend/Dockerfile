@@ -31,3 +31,4 @@ EXPOSE 8080
 
 # Substitute $PORT into Nginx configuration at startup and launch Nginx
 CMD ["/bin/sh", "-c", "envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+
