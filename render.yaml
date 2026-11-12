@@ -22,7 +22,7 @@ services:
     runtime: static
     plan: free
     rootDir: frontend
-    buildCommand: npm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: dist
     routes:
       - type: rewrite
@@ -34,3 +34,4 @@ services:
           type: web
           name: pacific-ecommerce-backend
           envVarKey: RENDER_EXTERNAL_URL
+
