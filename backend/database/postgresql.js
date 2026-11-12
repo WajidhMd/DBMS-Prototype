@@ -8,8 +8,20 @@ let postgresPool = null;
 export function getPostgresPool() {
   if (!postgresPool) {
     const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_PUBLIC_URL;
+    const cloudSqlInstance = process.env.CLOUD_SQL_CONNECTION_NAME || process.env.INSTANCE_CONNECTION_NAME;
 
-    if (connectionString) {
+    if (cloudSqlInstance) {
+      // Direct Google Cloud Run Unix domain socket to Cloud SQL
+      postgresPool = new Pool({
+        user: process.env.POSTGRES_USER || process.env.DB_USER || 'postgres',
+        password: process.env.POSTGRES_PASSWORD || process.env.DB_PASS || 'postgres',
+        database: process.env.POSTGRES_DATABASE || process.env.DB_NAME || 'ecommerce_db',
+        host: `/cloudsql/${cloudSqlInstance}`,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+      });
+    } else if (connectionString) {
       const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
       postgresPool = new Pool({
         connectionString,
@@ -25,15 +37,16 @@ export function getPostgresPool() {
       const password = process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || 'postgres';
       const database = process.env.POSTGRES_DATABASE || process.env.PGDATABASE || 'ecommerce_db';
       const isLocal = host === 'localhost' || host === '127.0.0.1';
-      const useSSL = process.env.POSTGRES_SSL === 'true' || process.env.PGSSL === 'true' || !isLocal;
+      const isUnixSocket = host.startsWith('/cloudsql/');
+      const useSSL = (process.env.POSTGRES_SSL === 'true' || process.env.PGSSL === 'true' || !isLocal) && !isUnixSocket;
 
       postgresPool = new Pool({
         host,
-        port,
+        port: isUnixSocket ? undefined : port,
         user,
         password,
         database,
-        ssl: useSSL && !isLocal ? { rejectUnauthorized: false } : false,
+        ssl: useSSL ? { rejectUnauthorized: false } : false,
         max: 10,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 5000,

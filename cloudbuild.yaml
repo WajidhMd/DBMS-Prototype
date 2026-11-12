@@ -1,0 +1,19 @@
+# Google Cloud Build configuration for PACIFIC E-Commerce DBMS
+steps:
+  # 1. Build Backend Cloud Run container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/ecommerce-backend:latest', './backend']
+
+  # 2. Build Frontend Cloud Run container image with injected API URL
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'VITE_API_URL=$_VITE_API_URL'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/ecommerce-frontend:latest'
+      - './frontend'
+
+images:
+  - 'gcr.io/$PROJECT_ID/ecommerce-backend:latest'
+  - 'gcr.io/$PROJECT_ID/ecommerce-frontend:latest'
