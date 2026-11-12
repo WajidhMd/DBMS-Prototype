@@ -43,10 +43,12 @@ app.use(cors({
     // Allow non-browser requests or same-origin requests
     if (!origin) return callback(null, true);
 
-    // Allow configured origins, localhost, or any vercel.app deployment preview
+    // Allow configured origins, localhost, or any vercel.app / onrender.com deployment preview
     if (
       configuredOrigins.includes(origin) ||
       origin.endsWith('.vercel.app') ||
+      origin.endsWith('.onrender.com') ||
+      origin.endsWith('.a.run.app') ||
       origin.includes('localhost') ||
       origin.includes('127.0.0.1')
     ) {

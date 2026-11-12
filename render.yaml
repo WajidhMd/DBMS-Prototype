@@ -1,0 +1,36 @@
+# Render Infrastructure as Code (Blueprint) for PACIFIC E-Commerce DBMS
+services:
+  # 1. Express.js Backend API
+  - type: web
+    name: pacific-ecommerce-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_DB_NAME
+        value: ecommerce_db
+
+  # 2. React + Vite Frontend Static Site
+  - type: web
+    name: pacific-ecommerce-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: pacific-ecommerce-backend
+          envVarKey: RENDER_EXTERNAL_URL
