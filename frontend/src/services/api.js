@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// Configurable API base URL: Reads from Vite environment variable (VITE_API_URL or VITE_API_BASE_URL)
+// If not configured (e.g. in local Vite dev), safely defaults to relative '/api' via Vite proxy
+const rawBaseURL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
+const baseURL = rawBaseURL.endsWith('/api') ? rawBaseURL : `${rawBaseURL.replace(/\/+$/, '')}/api`;
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json'
   }

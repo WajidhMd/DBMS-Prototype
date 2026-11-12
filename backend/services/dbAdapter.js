@@ -17,7 +17,7 @@ import {
   sampleReviews,
   sampleOrderHistory,
   sampleWishlists
-} from '../../database/seedData.js';
+} from '../database/seedData.js';
 
 // In-Memory Storage Instances for seamless demo mode per database target
 const memoryStores = {

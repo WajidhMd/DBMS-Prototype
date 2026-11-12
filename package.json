@@ -9,7 +9,9 @@
     "client": "cd frontend && npm run dev",
     "start:linux": "chmod +x start.sh && ./start.sh",
     "dev:linux": "chmod +x start.sh && ./start.sh",
-    "build": "cd frontend && npm run build"
+    "build": "cd frontend && npm run build",
+    "db:migrate:postgres": "cd backend && npm run db:migrate:postgres",
+    "db:seed:mongo": "cd backend && npm run db:seed:mongo"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3"

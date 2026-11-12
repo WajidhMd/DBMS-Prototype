@@ -27,12 +27,42 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0';
 
-// Middleware setup
-app.use(cors());
+// Configurable CORS for Production (Vercel, local dev, custom domain)
+const configuredOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173'
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests or same-origin requests
+    if (!origin) return callback(null, true);
+
+    // Allow configured origins, localhost, or any vercel.app deployment preview
+    if (
+      configuredOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1')
+    ) {
+      return callback(null, true);
+    }
+    // Permissive fallback so frontend domain changes never break requests
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-database-type', 'x-requested-with']
+}));
+
 app.use(express.json());
 
-// Database Selector middleware
+// Database Selector middleware (attaches req.dbType from header, query, or body with safe allowlist)
 app.use('/api', dbSelectorMiddleware);
 
 // API Routes
@@ -67,7 +97,23 @@ app.get('/api/sellers', async (req, res) => {
   }
 });
 
-// Health check endpoint
+// Root & Health check endpoints for Railway / Uptime monitors
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    service: 'Pacific E-Commerce DBMS API',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'online',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
@@ -76,12 +122,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve frontend build in production / Cloud Run
+// Serve frontend build if collocated
 const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
+    if (req.path.startsWith('/api') || req.path === '/health') return next();
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
@@ -92,6 +138,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 E-Commerce DBMS Backend server running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 E-Commerce DBMS Backend server running on http://${HOST}:${PORT}`);
 });
