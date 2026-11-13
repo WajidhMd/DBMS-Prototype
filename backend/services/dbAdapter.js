@@ -48,7 +48,8 @@ function createSeedSnapshot() {
     notifications: [],
     feedback_moderation: [],
     wishlists: JSON.parse(JSON.stringify(sampleWishlists || [])),
-    coupons: JSON.parse(JSON.stringify(sampleCoupons || []))
+    coupons: JSON.parse(JSON.stringify(sampleCoupons || [])),
+    coupon_redemptions: []
   };
 }
 
@@ -1215,6 +1216,15 @@ export async function createOrder(orderPayload, dbType = 'postgresql') {
     throw new Error('Cannot checkout with an empty cart');
   }
 
+  // Validate single-use coupon if applied
+  if (orderPayload.coupon_code) {
+    const cleanCoupon = orderPayload.coupon_code.trim().toUpperCase();
+    const alreadyUsed = await hasCustomerUsedCoupon(orderPayload.customer_id, cleanCoupon, dbType);
+    if (alreadyUsed) {
+      throw new Error(`Coupon '${cleanCoupon}' has already been redeemed on your account. Each promo code is single-use only.`);
+    }
+  }
+
   const cust = store.customers.find(c => c.customer_id === orderPayload.customer_id);
   const custEmail = cust ? cust.email : orderPayload.customer_id;
 
@@ -1273,6 +1283,17 @@ export async function createOrder(orderPayload, dbType = 'postgresql') {
     date_of_payment: orderDate
   };
   store.payments.unshift(paymentRecord);
+
+  // Record single-use coupon redemption
+  if (orderPayload.coupon_code) {
+    await recordCouponRedemption(
+      orderPayload.customer_id,
+      orderPayload.coupon_code,
+      orderId,
+      discount,
+      dbType
+    );
+  }
 
   // Log order history entry
   await addOrderHistoryRecord({
@@ -1407,6 +1428,12 @@ export async function updateOrderStatus(orderId, status, performedBy = 'System',
       });
       actionText = `Order Cancelled by Customer - ${orderItems.length} item(s) restocked to inventory`;
 
+      // Release one-time coupon redemption so customer can re-use it if order is cancelled
+      await releaseCouponRedemption(orderId, dbType);
+      if (ord.coupon_code) {
+        actionText += ` & coupon ${ord.coupon_code} restored to account`;
+      }
+
       const normType = normalizeDbType(dbType);
       if (normType === 'postgresql' && await testPostgresConnection()) {
         try {
@@ -1454,34 +1481,223 @@ export async function getAllPayments(dbType = 'postgresql') {
 }
 
 // ---------------------------------------------------
-// COUPONS & PROMO CODES OPERATIONS
+// COUPONS & PROMO CODES OPERATIONS (SINGLE-USE ENFORCED)
 // ---------------------------------------------------
 
-export async function getActiveCoupons(dbType = 'postgresql') {
+export async function hasCustomerUsedCoupon(customerId, couponCode, dbType = 'postgresql') {
+  if (!customerId || !couponCode) return false;
+  const cleanCode = couponCode.trim().toUpperCase();
   const normType = normalizeDbType(dbType);
   const store = getStore(dbType);
+
+  // 1. PostgreSQL check
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    try {
+      const pool = getPostgresPool();
+      // Ensure redemptions table exists
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS coupon_redemptions (
+          redemption_id VARCHAR(50) PRIMARY KEY,
+          coupon_code VARCHAR(50) NOT NULL,
+          customer_id VARCHAR(36) NOT NULL,
+          order_id VARCHAR(36),
+          discount_applied NUMERIC(10, 2) DEFAULT 0,
+          redeemed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT unique_customer_coupon UNIQUE (coupon_code, customer_id)
+        );
+      `);
+
+      // Check redemptions table
+      const redempRes = await pool.query(
+        'SELECT 1 FROM coupon_redemptions WHERE customer_id = $1 AND UPPER(coupon_code) = $2 LIMIT 1',
+        [customerId, cleanCode]
+      );
+      if (redempRes.rows && redempRes.rows.length > 0) return true;
+
+      // Check orders table (active / completed orders)
+      const ordRes = await pool.query(
+        "SELECT 1 FROM orders WHERE customer_id = $1 AND UPPER(coupon_code) = $2 AND order_status != 'CANCELLED' LIMIT 1",
+        [customerId, cleanCode]
+      );
+      if (ordRes.rows && ordRes.rows.length > 0) return true;
+    } catch (e) {
+      console.warn('Postgres hasCustomerUsedCoupon query warning:', e.message);
+    }
+  }
+
+  // 2. MongoDB check
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    try {
+      const db = await getMongoDB();
+      const redemp = await db.collection('coupon_redemptions').findOne({
+        customer_id: customerId,
+        coupon_code: { $regex: new RegExp(`^${cleanCode}$`, 'i') }
+      });
+      if (redemp) return true;
+
+      const orderWithCoupon = await db.collection('orders').findOne({
+        customer_id: customerId,
+        coupon_code: { $regex: new RegExp(`^${cleanCode}$`, 'i') },
+        order_status: { $ne: 'CANCELLED' }
+      });
+      if (orderWithCoupon) return true;
+    } catch (e) {
+      console.warn('MongoDB hasCustomerUsedCoupon query warning:', e.message);
+    }
+  }
+
+  // 3. In-memory store check
+  if (!store.coupon_redemptions) store.coupon_redemptions = [];
+  const inRedemptions = store.coupon_redemptions.some(
+    r => r.customer_id === customerId && (r.coupon_code || '').toUpperCase() === cleanCode
+  );
+  if (inRedemptions) return true;
+
+  const inOrders = (store.orders || []).some(
+    ord => ord.customer_id === customerId &&
+           ord.coupon_code &&
+           ord.coupon_code.toUpperCase() === cleanCode &&
+           ord.order_status !== 'CANCELLED'
+  );
+  return inOrders;
+}
+
+export async function recordCouponRedemption(customerId, couponCode, orderId, discountAmount = 0, dbType = 'postgresql') {
+  if (!customerId || !couponCode) return;
+  const cleanCode = couponCode.trim().toUpperCase();
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+  const redemptionId = `redemp-${Date.now()}`;
+  const now = new Date().toISOString();
+
+  if (!store.coupon_redemptions) store.coupon_redemptions = [];
+  if (!store.coupon_redemptions.some(r => r.customer_id === customerId && r.coupon_code === cleanCode)) {
+    store.coupon_redemptions.push({
+      redemption_id: redemptionId,
+      coupon_code: cleanCode,
+      customer_id: customerId,
+      order_id: orderId,
+      discount_applied: discountAmount,
+      redeemed_at: now
+    });
+  }
+
+  // PostgreSQL
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    try {
+      const pool = getPostgresPool();
+      await pool.query(`
+        INSERT INTO coupon_redemptions (redemption_id, coupon_code, customer_id, order_id, discount_applied, redeemed_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (coupon_code, customer_id) DO UPDATE SET order_id = EXCLUDED.order_id, discount_applied = EXCLUDED.discount_applied
+      `, [redemptionId, cleanCode, customerId, orderId, discountAmount, now]);
+    } catch (e) {
+      console.warn('Postgres recordCouponRedemption warning:', e.message);
+    }
+  }
+
+  // MongoDB
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    try {
+      const db = await getMongoDB();
+      await db.collection('coupon_redemptions').updateOne(
+        { customer_id: customerId, coupon_code: cleanCode },
+        {
+          $set: {
+            redemption_id: redemptionId,
+            coupon_code: cleanCode,
+            customer_id: customerId,
+            order_id: orderId,
+            discount_applied: discountAmount,
+            redeemed_at: now
+          }
+        },
+        { upsert: true }
+      );
+    } catch (e) {
+      console.warn('MongoDB recordCouponRedemption warning:', e.message);
+    }
+  }
+}
+
+export async function releaseCouponRedemption(orderId, dbType = 'postgresql') {
+  if (!orderId) return;
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+
+  if (store.coupon_redemptions) {
+    store.coupon_redemptions = store.coupon_redemptions.filter(r => r.order_id !== orderId);
+  }
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    try {
+      const pool = getPostgresPool();
+      await pool.query('DELETE FROM coupon_redemptions WHERE order_id = $1', [orderId]);
+    } catch (_) {}
+  }
+
+  if (normType === 'mongodb' && await testMongoDBConnection()) {
+    try {
+      const db = await getMongoDB();
+      await db.collection('coupon_redemptions').deleteMany({ order_id: orderId });
+    } catch (_) {}
+  }
+}
+
+export async function getActiveCoupons(dbType = 'postgresql', customerId = null) {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+  let coupons = [];
 
   if (normType === 'postgresql' && await testPostgresConnection()) {
     try {
       const pool = getPostgresPool();
       const res = await pool.query('SELECT * FROM coupons WHERE is_active = true ORDER BY discount_value DESC');
       if (res.rows && res.rows.length > 0) {
-        return res.rows;
+        coupons = res.rows;
       }
     } catch (_) { }
   }
 
-  return (store.coupons || []).filter(c => c.is_active);
+  if (!coupons || coupons.length === 0) {
+    coupons = (store.coupons || []).filter(c => c.is_active);
+  }
+
+  if (customerId) {
+    const annotated = await Promise.all(coupons.map(async (c) => {
+      const used = await hasCustomerUsedCoupon(customerId, c.code, dbType);
+      return {
+        ...c,
+        already_used: used
+      };
+    }));
+    return annotated;
+  }
+
+  return coupons.map(c => ({ ...c, already_used: false }));
 }
 
-export async function validateCouponCode(code, cartTotal = 0, dbType = 'postgresql') {
+export async function validateCouponCode(code, cartTotal = 0, customerId = null, dbType = 'postgresql') {
   if (!code) throw new Error('Please enter a coupon code.');
   const cleanCode = code.trim().toUpperCase();
-  const activeCoupons = await getActiveCoupons(dbType);
+
+  // Enforce single-use per customer account
+  if (customerId) {
+    const alreadyUsed = await hasCustomerUsedCoupon(customerId, cleanCode, dbType);
+    if (alreadyUsed) {
+      throw new Error(`You have already used coupon code '${cleanCode}'. Each coupon can only be used once per account.`);
+    }
+  }
+
+  const activeCoupons = await getActiveCoupons(dbType, customerId);
   const coupon = activeCoupons.find(c => c.code.toUpperCase() === cleanCode);
 
   if (!coupon) {
-    throw new Error(`Invalid coupon code '${cleanCode}'. Available: PACIFIC20, GOLD500, WELCOME10, FESTIVE15`);
+    throw new Error(`Invalid or expired coupon code '${cleanCode}'. Available: PACIFIC20, GOLD500, WELCOME10, FESTIVE15`);
+  }
+
+  if (coupon.already_used) {
+    throw new Error(`You have already used coupon code '${cleanCode}'. Each coupon can only be used once per account.`);
   }
 
   const subtotal = Number(cartTotal) || 0;
@@ -1509,6 +1725,7 @@ export async function validateCouponCode(code, cartTotal = 0, dbType = 'postgres
     code: coupon.code,
     discountAmount,
     description: coupon.description,
+    single_use: true,
     finalTotal: Math.max(0, subtotal - discountAmount)
   };
 }

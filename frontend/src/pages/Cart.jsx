@@ -36,12 +36,20 @@ export default function Cart() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMsg, setCouponMsg] = useState({ text: '', type: '' });
+  const [availableCoupons, setAvailableCoupons] = useState([]);
 
   useEffect(() => {
     try {
       const stored = JSON.parse((localStorage.getItem('pacific_saved_for_later') || localStorage.getItem('pacific_saved_for_later')) || '[]');
       setSavedForLater(stored);
     } catch (_) {}
+
+    // Load active promo codes with single-use status
+    api.get('/coupons/active')
+      .then(res => {
+        if (Array.isArray(res.data)) setAvailableCoupons(res.data);
+      })
+      .catch(() => {});
 
     // Load any previously applied coupon
     try {
@@ -423,30 +431,45 @@ export default function Cart() {
               {!appliedCoupon && (
                 <div style={{ marginTop: '0.65rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>Active Promos:</span>
-                  {[
-                    { code: 'PACIFIC20', label: 'PACIFIC20 (20% OFF)' },
-                    { code: 'GOLD500', label: 'GOLD500 (₹500 OFF)' },
-                    { code: 'WELCOME10', label: 'WELCOME10' },
-                    { code: 'FREESHIP', label: 'FREESHIP' }
-                  ].map(promo => (
-                    <button
-                      key={promo.code}
-                      type="button"
-                      onClick={() => setCouponCode(promo.code)}
-                      style={{
-                        background: 'rgba(212, 175, 55, 0.1)',
-                        border: '1px dashed rgba(212, 175, 55, 0.4)',
-                        color: 'var(--color-primary)',
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        padding: '0.15rem 0.45rem',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {promo.label}
-                    </button>
-                  ))}
+                  {(availableCoupons.length > 0 ? availableCoupons : [
+                    { code: 'PACIFIC20', discount_value: 20, discount_type: 'percentage' },
+                    { code: 'GOLD500', discount_value: 500, discount_type: 'flat' },
+                    { code: 'WELCOME10', discount_value: 10, discount_type: 'percentage' },
+                    { code: 'FREESHIP', discount_value: 99, discount_type: 'flat' }
+                  ]).map(promo => {
+                    const isUsed = Boolean(promo.already_used);
+                    return (
+                      <button
+                        key={promo.code}
+                        type="button"
+                        onClick={() => {
+                          if (isUsed) {
+                            setCouponMsg({
+                              text: `Coupon '${promo.code}' has already been redeemed by your account. Single-use only!`,
+                              type: 'error'
+                            });
+                          } else {
+                            setCouponCode(promo.code);
+                          }
+                        }}
+                        style={{
+                          background: isUsed ? 'rgba(239, 68, 68, 0.08)' : 'rgba(212, 175, 55, 0.1)',
+                          border: isUsed ? '1px dashed rgba(239, 68, 68, 0.35)' : '1px dashed rgba(212, 175, 55, 0.4)',
+                          color: isUsed ? '#f87171' : 'var(--color-primary)',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '0.15rem 0.45rem',
+                          borderRadius: '4px',
+                          cursor: isUsed ? 'not-allowed' : 'pointer',
+                          textDecoration: isUsed ? 'line-through' : 'none',
+                          opacity: isUsed ? 0.65 : 1
+                        }}
+                        title={isUsed ? 'Already redeemed on a previous order' : (promo.description || promo.code)}
+                      >
+                        {promo.code} {isUsed ? '(Used)' : (promo.discount_value ? (promo.discount_type === 'percentage' ? `(${promo.discount_value}% OFF)` : `(₹${promo.discount_value} OFF)`) : '')}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 

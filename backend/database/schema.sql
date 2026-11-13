@@ -1,6 +1,7 @@
 -- PostgreSQL DDL Schema for E-Commerce Management System
 
 -- Drop tables if existing (in reverse dependency order)
+DROP TABLE IF EXISTS coupon_redemptions CASCADE;
 DROP TABLE IF EXISTS coupons CASCADE;
 DROP TABLE IF EXISTS wishlists CASCADE;
 DROP TABLE IF EXISTS feedback_moderation CASCADE;
@@ -259,4 +260,15 @@ CREATE TABLE coupons (
     expires_at TIMESTAMP DEFAULT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 21. Coupon Redemptions Entity (Enforces Single-Use per Customer)
+CREATE TABLE coupon_redemptions (
+    redemption_id VARCHAR(50) PRIMARY KEY,
+    coupon_code VARCHAR(50) NOT NULL,
+    customer_id VARCHAR(36) NOT NULL REFERENCES customers(customer_id) ON DELETE CASCADE,
+    order_id VARCHAR(36) REFERENCES orders(order_id) ON DELETE SET NULL,
+    discount_applied NUMERIC(10, 2) DEFAULT 0,
+    redeemed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_customer_coupon UNIQUE (coupon_code, customer_id)
 );

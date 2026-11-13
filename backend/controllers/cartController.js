@@ -1,10 +1,12 @@
+import jwt from 'jsonwebtoken';
 import {
   getCartByCustomerId,
   addToCart as addItemToCart,
   updateCartItemQuantity,
   removeFromCart as removeItemFromCart,
   clearCart as emptyCart,
-  mergeCartItems
+  mergeCartItems,
+  validateCouponCode
 } from '../services/dbAdapter.js';
 
 export async function getCart(req, res) {
@@ -77,14 +79,6 @@ export async function syncCart(req, res) {
   }
 }
 
-const PROMO_COUPONS = {
-  PACIFIC20: { code: 'PACIFIC20', type: 'percentage', value: 20, maxDiscount: 1000, minCart: 500, description: '20% OFF up to ₹1,000 on luxury orders over ₹500' },
-  JMART20: { code: 'JMART20', type: 'percentage', value: 20, maxDiscount: 1000, minCart: 500, description: '20% OFF up to ₹1,000 on orders over ₹500' },
-  GOLD500: { code: 'GOLD500', type: 'flat', value: 500, minCart: 2000, description: 'Flat ₹500 OFF on orders above ₹2,000' },
-  FESTIVE10: { code: 'FESTIVE10', type: 'percentage', value: 10, maxDiscount: 500, minCart: 0, description: 'Festive 10% OFF on all orders' },
-  WELCOME100: { code: 'WELCOME100', type: 'flat', value: 100, minCart: 300, description: 'Flat ₹100 Welcome Discount on orders above ₹300' }
-};
-
 export async function validateCoupon(req, res) {
   try {
     const { code, cartTotal } = req.body;
@@ -92,39 +86,20 @@ export async function validateCoupon(req, res) {
       return res.status(400).json({ valid: false, error: 'Please enter a coupon code.' });
     }
 
-    const cleanCode = code.trim().toUpperCase();
-    const coupon = PROMO_COUPONS[cleanCode];
-
-    if (!coupon) {
-      return res.status(400).json({ valid: false, error: `Invalid coupon code '${cleanCode}'. Try 'PACIFIC20' or 'JMART20' or 'GOLD500'.` });
-    }
-
-    const subtotal = Number(cartTotal) || 0;
-    if (subtotal < coupon.minCart) {
-      return res.status(400).json({
-        valid: false,
-        error: `Coupon '${coupon.code}' requires a minimum order subtotal of ₹${coupon.minCart}. Add ₹${(coupon.minCart - subtotal).toFixed(0)} more!`
-      });
-    }
-
-    let discountAmount = 0;
-    if (coupon.type === 'percentage') {
-      discountAmount = Math.round((subtotal * coupon.value) / 100);
-      if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-        discountAmount = coupon.maxDiscount;
+    let customerId = req.user?.ref_id || req.body?.customerId || req.query?.customerId;
+    if (!customerId && req.headers['authorization']) {
+      const token = req.headers['authorization'].split(' ')[1];
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'ecommerce_dbms_secret_key_2026');
+          customerId = decoded.ref_id;
+        } catch (_) {}
       }
-    } else {
-      discountAmount = coupon.value;
     }
 
-    return res.json({
-      valid: true,
-      code: coupon.code,
-      discountAmount,
-      description: coupon.description,
-      finalTotal: Math.max(0, subtotal - discountAmount)
-    });
+    const result = await validateCouponCode(code, cartTotal, customerId, req.dbType);
+    return res.json(result);
   } catch (err) {
-    return res.status(500).json({ valid: false, error: 'Failed to validate coupon code.' });
+    return res.status(400).json({ valid: false, error: err.message || 'Failed to validate coupon code.' });
   }
 }

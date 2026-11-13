@@ -53,6 +53,7 @@ export default function Checkout() {
   const [checkoutCouponCode, setCheckoutCouponCode] = useState('');
   const [checkoutCouponLoading, setCheckoutCouponLoading] = useState(false);
   const [checkoutCouponMsg, setCheckoutCouponMsg] = useState({ text: '', type: '' });
+  const [availableCoupons, setAvailableCoupons] = useState([]);
 
   const handleApplyCheckoutCoupon = async (e) => {
     e?.preventDefault();
@@ -66,7 +67,7 @@ export default function Checkout() {
       });
       setAppliedCoupon(res.data);
       sessionStorage.setItem('pacific_applied_coupon', JSON.stringify(res.data));
-      setCheckoutCouponMsg({ text: `Coupon '${res.data.code}' applied! Saved ₹${res.data.discountAmount}`, type: 'success' });
+      setCheckoutCouponMsg({ text: `Coupon '${res.data.code}' applied! Saved ₹${res.data.discountAmount} (Single-use)`, type: 'success' });
     } catch (err) {
       setCheckoutCouponMsg({ text: err.response?.data?.error || 'Invalid coupon.', type: 'error' });
     } finally {
@@ -94,23 +95,39 @@ export default function Checkout() {
 
   useEffect(() => {
     fetchCheckoutData();
-    try {
-      const storedCoupon = JSON.parse((sessionStorage.getItem('pacific_applied_coupon') || sessionStorage.getItem('pacific_applied_coupon')) || 'null');
-      if (storedCoupon) setAppliedCoupon(storedCoupon);
-    } catch (_) {}
   }, [targetDb]);
 
   const fetchCheckoutData = async () => {
     try {
       setLoading(true);
-      const [cartRes, addrRes] = await Promise.all([
+      const [cartRes, addrRes, couponRes] = await Promise.all([
         api.get('/cart'),
-        api.get('/addresses')
+        api.get('/addresses'),
+        api.get('/coupons/active').catch(() => ({ data: [] }))
       ]);
 
       setCart(cartRes.data || null);
       const addrList = addrRes.data || [];
       setAddresses(addrList);
+      if (Array.isArray(couponRes.data)) {
+        setAvailableCoupons(couponRes.data);
+      }
+
+      // Check stored coupon validity (re-validate single-use against server)
+      try {
+        const storedCoupon = JSON.parse((sessionStorage.getItem('pacific_applied_coupon') || sessionStorage.getItem('pacific_applied_coupon')) || 'null');
+        if (storedCoupon) {
+          api.post('/cart/coupon', { code: storedCoupon.code, cartTotal: cartRes.data?.grand_total || 0 })
+            .then(res => setAppliedCoupon(res.data))
+            .catch(err => {
+              sessionStorage.removeItem('pacific_applied_coupon');
+              setAppliedCoupon(null);
+              if (err.response?.data?.error) {
+                setCheckoutCouponMsg({ text: err.response.data.error, type: 'error' });
+              }
+            });
+        }
+      } catch (_) {}
 
       const defaultAddr = addrList.find(a => a.is_default) || addrList[0];
       if (defaultAddr) {
@@ -612,32 +629,45 @@ export default function Checkout() {
             {!appliedCoupon && (
               <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>Try:</span>
-                {[
-                  { code: 'PACIFIC20', label: 'PACIFIC20 (20% OFF)' },
-                  { code: 'GOLD500', label: 'GOLD500 (₹500 OFF)' },
-                  { code: 'WELCOME10', label: 'WELCOME10 (10% OFF)' },
-                  { code: 'FREESHIP', label: 'FREESHIP' }
-                ].map(p => (
-                  <button
-                    key={p.code}
-                    type="button"
-                    onClick={() => {
-                      setCheckoutCouponCode(p.code);
-                    }}
-                    style={{
-                      background: 'rgba(212, 175, 55, 0.1)',
-                      border: '1px dashed rgba(212, 175, 55, 0.4)',
-                      color: 'var(--color-primary)',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      padding: '0.15rem 0.4rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+                {(availableCoupons.length > 0 ? availableCoupons : [
+                  { code: 'PACIFIC20', discount_value: 20, discount_type: 'percentage' },
+                  { code: 'GOLD500', discount_value: 500, discount_type: 'flat' },
+                  { code: 'WELCOME10', discount_value: 10, discount_type: 'percentage' },
+                  { code: 'FREESHIP', discount_value: 99, discount_type: 'flat' }
+                ]).map(p => {
+                  const isUsed = Boolean(p.already_used);
+                  return (
+                    <button
+                      key={p.code}
+                      type="button"
+                      onClick={() => {
+                        if (isUsed) {
+                          setCheckoutCouponMsg({
+                            text: `Coupon '${p.code}' was already redeemed by your account. Single-use only!`,
+                            type: 'error'
+                          });
+                        } else {
+                          setCheckoutCouponCode(p.code);
+                        }
+                      }}
+                      style={{
+                        background: isUsed ? 'rgba(239, 68, 68, 0.08)' : 'rgba(212, 175, 55, 0.1)',
+                        border: isUsed ? '1px dashed rgba(239, 68, 68, 0.35)' : '1px dashed rgba(212, 175, 55, 0.4)',
+                        color: isUsed ? '#f87171' : 'var(--color-primary)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '0.15rem 0.4rem',
+                        borderRadius: '4px',
+                        cursor: isUsed ? 'not-allowed' : 'pointer',
+                        textDecoration: isUsed ? 'line-through' : 'none',
+                        opacity: isUsed ? 0.65 : 1
+                      }}
+                      title={isUsed ? 'Already redeemed on a previous order' : (p.description || p.code)}
+                    >
+                      {p.code} {isUsed ? '(Used)' : (p.discount_value ? (p.discount_type === 'percentage' ? `(${p.discount_value}% OFF)` : `(₹${p.discount_value} OFF)`) : '')}
+                    </button>
+                  );
+                })}
               </div>
             )}
             {checkoutCouponMsg.text && (
