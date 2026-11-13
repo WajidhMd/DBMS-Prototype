@@ -696,7 +696,7 @@ export async function getProductById(productId, dbType = 'postgresql') {
 
   // Fetch reviews for rating
   const reviews = await getReviewsByProductId(productId, dbType);
-  const avgRating = reviews.length > 0 
+  const avgRating = reviews.length > 0
     ? parseFloat((reviews.reduce((acc, r) => acc + parseInt(r.rating), 0) / reviews.length).toFixed(1))
     : 0;
 
@@ -737,7 +737,7 @@ export async function getFrequentlyBoughtTogether(productId, dbType = 'postgresq
       res.rows.forEach(r => {
         coOccurCounts[r.product_id] = parseInt(r.co_count) || 1;
       });
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // 2. In-memory / MongoDB snapshot scan of co-purchases
@@ -1277,8 +1277,8 @@ export async function createOrder(orderPayload, dbType = 'postgresql') {
   // Log order history entry
   await addOrderHistoryRecord({
     order_id: orderId,
-    action: orderPayload.coupon_code 
-      ? `Order Placed by Customer (Coupon: ${orderPayload.coupon_code}, Saved ₹${discount})` 
+    action: orderPayload.coupon_code
+      ? `Order Placed by Customer (Coupon: ${orderPayload.coupon_code}, Saved ₹${discount})`
       : 'Order Placed by Customer',
     performed_by: custEmail,
     previous_status: null,
@@ -1417,7 +1417,7 @@ export async function updateOrderStatus(orderId, status, performedBy = 'System',
             FROM order_item oi
             WHERE oi.order_id = $1 AND oi.product_id = p.product_id
           `, [orderId]);
-        } catch (_) {}
+        } catch (_) { }
       }
     } else if (upperStatus === 'SHIPPED' || upperStatus === 'ORDER SHIPPED') {
       actionText = `Order Status updated to SHIPPED (Approx Delivery: ${ord.approx_delivery_date})`;
@@ -1468,7 +1468,7 @@ export async function getActiveCoupons(dbType = 'postgresql') {
       if (res.rows && res.rows.length > 0) {
         return res.rows;
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   return (store.coupons || []).filter(c => c.is_active);
@@ -1601,11 +1601,11 @@ export async function updateReview(reviewId, customerId, updates, dbType = 'post
   if (idx === -1) {
     throw new Error('Review not found or you do not have permission to edit it.');
   }
-  
+
   if (updates.rating) store.reviews[idx].rating = parseInt(updates.rating);
   if (updates.description !== undefined) store.reviews[idx].description = updates.description;
   store.reviews[idx].review_date = new Date().toISOString().replace('T', ' ').substring(0, 19);
-  
+
   return store.reviews[idx];
 }
 
@@ -1630,9 +1630,9 @@ export async function flagReview(reviewId, moderatorEmail, reason, dbType = 'pos
   const store = getStore(dbType);
   const review = store.reviews.find(r => r.review_id === reviewId);
   if (!review) throw new Error('Review not found.');
-  
+
   review.is_flagged = true;
-  
+
   if (!store.feedback_moderation) store.feedback_moderation = [];
   store.feedback_moderation.push({
     moderation_id: `mod-${Date.now()}`,
@@ -1642,7 +1642,7 @@ export async function flagReview(reviewId, moderatorEmail, reason, dbType = 'pos
     reason: reason || 'Flagged for review',
     timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
   });
-  
+
   return review;
 }
 
@@ -1650,9 +1650,9 @@ export async function hideReview(reviewId, moderatorEmail, reason, dbType = 'pos
   const store = getStore(dbType);
   const review = store.reviews.find(r => r.review_id === reviewId);
   if (!review) throw new Error('Review not found.');
-  
+
   review.is_hidden = true;
-  
+
   if (!store.feedback_moderation) store.feedback_moderation = [];
   store.feedback_moderation.push({
     moderation_id: `mod-${Date.now()}`,
@@ -1662,7 +1662,7 @@ export async function hideReview(reviewId, moderatorEmail, reason, dbType = 'pos
     reason: reason || 'Content violation',
     timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
   });
-  
+
   return review;
 }
 
@@ -1670,10 +1670,10 @@ export async function unhideReview(reviewId, moderatorEmail, dbType = 'postgresq
   const store = getStore(dbType);
   const review = store.reviews.find(r => r.review_id === reviewId);
   if (!review) throw new Error('Review not found.');
-  
+
   review.is_hidden = false;
   review.is_flagged = false;
-  
+
   if (!store.feedback_moderation) store.feedback_moderation = [];
   store.feedback_moderation.push({
     moderation_id: `mod-${Date.now()}`,
@@ -1683,7 +1683,7 @@ export async function unhideReview(reviewId, moderatorEmail, dbType = 'postgresq
     reason: 'Review restored',
     timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
   });
-  
+
   return review;
 }
 
@@ -1752,7 +1752,7 @@ export async function createReturnRequest(returnData, dbType = 'postgresql') {
   for (const returnItem of items) {
     const orderItem = orderItems.find(oi => oi.product_id === returnItem.product_id);
     if (!orderItem) throw new Error(`Product ${returnItem.product_id} was not part of this order.`);
-    
+
     if (returnItem.quantity > orderItem.quantity) {
       throw new Error(`Cannot return more than purchased quantity for product ${returnItem.product_id}.`);
     }
@@ -1761,12 +1761,12 @@ export async function createReturnRequest(returnData, dbType = 'postgresql') {
     }
 
     // Check for existing active return on same product in same order
-    const existingReturn = store.return_requests.find(r => 
-      r.order_id === order_id && 
+    const existingReturn = store.return_requests.find(r =>
+      r.order_id === order_id &&
       !['RETURN_REJECTED', 'RETURN_CANCELLED', 'RETURN_COMPLETED'].includes(r.return_status)
     );
     if (existingReturn) {
-      const existingReturnItem = store.return_items.find(ri => 
+      const existingReturnItem = store.return_items.find(ri =>
         ri.return_id === existingReturn.return_id && ri.product_id === returnItem.product_id
       );
       if (existingReturnItem) {
@@ -2072,13 +2072,13 @@ export async function getNotifications(filters = {}, dbType = 'postgresql') {
   let notifs = [...store.notifications];
 
   if (filters.recipient_id) {
-    notifs = notifs.filter(n => 
-      n.recipient_id === filters.recipient_id || 
+    notifs = notifs.filter(n =>
+      n.recipient_id === filters.recipient_id ||
       (n.recipient_role && n.recipient_role === filters.role && !n.recipient_id)
     );
   } else if (filters.role) {
-    notifs = notifs.filter(n => 
-      n.recipient_role === filters.role || 
+    notifs = notifs.filter(n =>
+      n.recipient_role === filters.role ||
       n.recipient_id === filters.ref_id
     );
   }

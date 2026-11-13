@@ -22,3 +22,4 @@ export async function validateCoupon(req, res) {
     return res.status(400).json({ valid: false, error: err.message || 'Invalid coupon code.' });
   }
 }
+

@@ -554,3 +554,4 @@ export default function RazorpayModal({
     </div>
   );
 }
+

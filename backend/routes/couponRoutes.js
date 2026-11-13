@@ -8,3 +8,4 @@ router.get('/active', getActiveCoupons);
 router.post('/validate', validateCoupon);
 
 export default router;
+

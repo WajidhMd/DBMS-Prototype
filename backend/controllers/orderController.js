@@ -435,7 +435,7 @@ export async function exchangeOrder(req, res) {
 
     try {
       await modifyOrderStatus(orderId, 'EXCHANGE_REQUESTED', `Exchange: ${exchangeEntry.replacementVariant}`, req.dbType);
-    } catch (_) {}
+    } catch (_) { }
 
     return res.json({
       success: true,
