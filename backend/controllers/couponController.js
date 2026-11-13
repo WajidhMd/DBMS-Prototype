@@ -18,7 +18,7 @@ function extractCustomerId(req) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET);
         return decoded.ref_id;
-      } catch (_) {}
+      } catch (_) { }
     }
   }
   return null;

@@ -127,7 +127,7 @@ export default function Checkout() {
               }
             });
         }
-      } catch (_) {}
+      } catch (_) { }
 
       const defaultAddr = addrList.find(a => a.is_default) || addrList[0];
       if (defaultAddr) {

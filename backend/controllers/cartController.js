@@ -93,7 +93,7 @@ export async function validateCoupon(req, res) {
         try {
           const decoded = jwt.verify(token, process.env.JWT_SECRET || 'ecommerce_dbms_secret_key_2026');
           customerId = decoded.ref_id;
-        } catch (_) {}
+        } catch (_) { }
       }
     }
 
