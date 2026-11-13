@@ -420,6 +420,36 @@ export default function Cart() {
                 </form>
               )}
 
+              {!appliedCoupon && (
+                <div style={{ marginTop: '0.65rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>Active Promos:</span>
+                  {[
+                    { code: 'PACIFIC20', label: 'PACIFIC20 (20% OFF)' },
+                    { code: 'GOLD500', label: 'GOLD500 (₹500 OFF)' },
+                    { code: 'WELCOME10', label: 'WELCOME10' },
+                    { code: 'FREESHIP', label: 'FREESHIP' }
+                  ].map(promo => (
+                    <button
+                      key={promo.code}
+                      type="button"
+                      onClick={() => setCouponCode(promo.code)}
+                      style={{
+                        background: 'rgba(212, 175, 55, 0.1)',
+                        border: '1px dashed rgba(212, 175, 55, 0.4)',
+                        color: 'var(--color-primary)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {promo.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {couponMsg.text && (
                 <div style={{
                   fontSize: '0.75rem',

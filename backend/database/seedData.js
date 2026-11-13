@@ -219,7 +219,12 @@ export const sampleProducts = [
     "mrp": 14999,
     "stock_qty": 45,
     "is_active": true,
-    "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600"
+    "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600",
+    "variants": [
+      { "sku": "QP-BLK-STD", "name": "Standard Edition", "color": "Midnight Black", "colorHex": "#111111", "edition": "Standard", "price": 14999, "stock": 25 },
+      { "sku": "QP-GLD-PRO", "name": "Pro Studio Edition", "color": "Champagne Gold", "colorHex": "#C6A15B", "edition": "Pro Studio (+ANC)", "price": 16999, "stock": 15 },
+      { "sku": "QP-SLV-MAX", "name": "Titanium Max Edition", "color": "Titanium Silver", "colorHex": "#9E9E9E", "edition": "Titanium Hi-Res", "price": 18499, "stock": 5 }
+    ]
   },
   {
     "product_id": "prod-002",
@@ -230,7 +235,11 @@ export const sampleProducts = [
     "mrp": 96999,
     "stock_qty": 12,
     "is_active": true,
-    "image_url": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600"
+    "image_url": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600",
+    "variants": [
+      { "sku": "UB-512-SLV", "name": "512GB SSD • 16GB RAM", "color": "Titanium Silver", "colorHex": "#9E9E9E", "storage": "512GB SSD", "price": 96999, "stock": 8 },
+      { "sku": "UB-1TB-GLD", "name": "1TB SSD • 32GB RAM", "color": "Champagne Gold", "colorHex": "#C6A15B", "storage": "1TB SSD", "price": 112999, "stock": 4 }
+    ]
   },
   {
     "product_id": "prod-003",
@@ -241,7 +250,11 @@ export const sampleProducts = [
     "mrp": 18999,
     "stock_qty": 30,
     "is_active": true,
-    "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600"
+    "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600",
+    "variants": [
+      { "sku": "AW-40-BLK", "name": "40mm GPS • Midnight Black", "color": "Midnight Black", "colorHex": "#111111", "size": "40mm GPS", "price": 18999, "stock": 18 },
+      { "sku": "AW-44-GLD", "name": "44mm Cellular • Royal Gold", "color": "Champagne Gold", "colorHex": "#C6A15B", "size": "44mm Cellular", "price": 22999, "stock": 12 }
+    ]
   },
   {
     "product_id": "prod-007",
@@ -1788,10 +1801,28 @@ export const sampleOrderItems = [
     unit_price: 6499.00
   },
   {
+    order_id: 'ord-001',
+    product_id: 'prod-007',
+    quantity: 1,
+    unit_price: 9499.00
+  },
+  {
     order_id: 'ord-002',
     product_id: 'prod-002',
     quantity: 1,
     unit_price: 96999.00
+  },
+  {
+    order_id: 'ord-002',
+    product_id: 'prod-012',
+    quantity: 1,
+    unit_price: 6499.00
+  },
+  {
+    order_id: 'ord-002',
+    product_id: 'prod-001',
+    quantity: 1,
+    unit_price: 14999.00
   }
 ];
 
@@ -1830,5 +1861,63 @@ export const sampleReviews = [
     rating: 4,
     description: 'Very comfortable running shoes with decent arch support. Fits true to size.',
     review_date: '2026-02-16 10:15:00'
+  }
+];
+
+export const sampleCoupons = [
+  {
+    coupon_id: 'coup-001',
+    code: 'PACIFIC20',
+    discount_type: 'percentage',
+    discount_value: 20,
+    min_order_amount: 1000,
+    max_discount: 2000,
+    description: '20% OFF up to ₹2,000 on luxury orders over ₹1,000',
+    expires_at: '2027-12-31 23:59:59',
+    is_active: true
+  },
+  {
+    coupon_id: 'coup-002',
+    code: 'GOLD500',
+    discount_type: 'flat',
+    discount_value: 500,
+    min_order_amount: 2000,
+    max_discount: 500,
+    description: 'Flat ₹500 OFF on orders above ₹2,000',
+    expires_at: '2027-12-31 23:59:59',
+    is_active: true
+  },
+  {
+    coupon_id: 'coup-003',
+    code: 'WELCOME10',
+    discount_type: 'percentage',
+    discount_value: 10,
+    min_order_amount: 500,
+    max_discount: 1000,
+    description: '10% Welcome Discount up to ₹1,000 on orders over ₹500',
+    expires_at: '2027-12-31 23:59:59',
+    is_active: true
+  },
+  {
+    coupon_id: 'coup-004',
+    code: 'FESTIVE15',
+    discount_type: 'percentage',
+    discount_value: 15,
+    min_order_amount: 1500,
+    max_discount: 1500,
+    description: 'Festive 15% OFF up to ₹1,500 on all orders over ₹1,500',
+    expires_at: '2027-12-31 23:59:59',
+    is_active: true
+  },
+  {
+    coupon_id: 'coup-005',
+    code: 'FREESHIP',
+    discount_type: 'flat',
+    discount_value: 99,
+    min_order_amount: 499,
+    max_discount: 99,
+    description: 'Free Shipping Voucher on orders above ₹499',
+    expires_at: '2027-12-31 23:59:59',
+    is_active: true
   }
 ];

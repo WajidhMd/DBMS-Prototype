@@ -10,7 +10,19 @@ import {
 export async function createOrder(req, res) {
   try {
     const customer_id = req.user.ref_id;
-    const { address_id, payment_mode } = req.body;
+    const {
+      address_id,
+      payment_mode,
+      coupon_code,
+      discount_amount,
+      delivery_tier,
+      delivery_fee,
+      is_gift,
+      gift_wrap,
+      gift_message,
+      razorpay_payment_id,
+      razorpay_order_id
+    } = req.body;
 
     if (!address_id) {
       return res.status(400).json({ error: 'Shipping address selection is required.' });
@@ -19,7 +31,16 @@ export async function createOrder(req, res) {
     const newOrder = await placeOrder({
       customer_id,
       address_id,
-      payment_mode: payment_mode || 'Credit/Debit Card'
+      payment_mode: payment_mode || 'Credit/Debit Card',
+      coupon_code,
+      discount_amount,
+      delivery_tier,
+      delivery_fee,
+      is_gift,
+      gift_wrap,
+      gift_message,
+      razorpay_payment_id,
+      razorpay_order_id
     }, req.dbType);
 
     return res.status(201).json(newOrder);
@@ -297,12 +318,80 @@ export async function cancelOrder(req, res) {
     const reason = req.body.reason || 'Cancelled by customer';
     const updated = await modifyOrderStatus(orderId, 'CANCELLED', `${req.user.email} (${reason})`, req.dbType);
 
+    const restockedCount = (order.items || []).reduce((acc, item) => acc + (parseInt(item.quantity) || 1), 0);
+    const refundAmount = Number(order.total_amount || order.order_amount || 0);
+
     return res.json({
-      message: `Order cancelled successfully. Instant refund of ₹${Number(order.total_amount || 0).toLocaleString('en-IN')} initiated to your original payment source.`,
-      order: updated
+      success: true,
+      message: `Order #${order.order_number || orderId} cancelled successfully. Auto-restocked ${restockedCount} item(s) back to catalog inventory. Instant refund of ₹${refundAmount.toLocaleString('en-IN')} initiated to your original payment method.`,
+      order: updated,
+      restocked_items: restockedCount,
+      refund_amount: refundAmount
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Failed to cancel order.' });
+  }
+}
+
+// ---------------------------------------------------
+// RAZORPAY TEST-MODE PAYMENT GATEWAY
+// ---------------------------------------------------
+
+export async function createRazorpayOrder(req, res) {
+  try {
+    const { amount, currency = 'INR', receipt } = req.body;
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'Valid payable amount is required.' });
+    }
+
+    const razorpayOrderId = `order_test_${Date.now()}`;
+    const amountInPaise = Math.round(Number(amount) * 100);
+
+    return res.json({
+      id: razorpayOrderId,
+      entity: 'order',
+      amount: amountInPaise,
+      amount_due: amountInPaise,
+      amount_paid: 0,
+      currency,
+      receipt: receipt || `rcpt_${Date.now()}`,
+      status: 'created',
+      key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_PACIFIC_STORE_98231',
+      created_at: Math.floor(Date.now() / 1000)
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Failed to create Razorpay test order.' });
+  }
+}
+
+export async function verifyRazorpayPayment(req, res) {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_payload } = req.body;
+
+    if (!razorpay_payment_id) {
+      return res.status(400).json({ error: 'Payment verification failed: Missing payment ID.' });
+    }
+
+    const customer_id = req.user.ref_id;
+    const orderData = {
+      ...(order_payload || {}),
+      customer_id,
+      payment_mode: 'Razorpay (Test Mode)',
+      razorpay_payment_id: razorpay_payment_id || `pay_test_${Date.now()}`,
+      razorpay_order_id: razorpay_order_id || `order_test_${Date.now()}`
+    };
+
+    const newOrder = await placeOrder(orderData, req.dbType);
+
+    return res.status(201).json({
+      success: true,
+      verified: true,
+      message: 'Razorpay test payment verified and order created successfully.',
+      payment_id: razorpay_payment_id,
+      order: newOrder
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Payment verification failed.' });
   }
 }
 

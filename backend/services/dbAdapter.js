@@ -16,7 +16,8 @@ import {
   samplePayments,
   sampleReviews,
   sampleOrderHistory,
-  sampleWishlists
+  sampleWishlists,
+  sampleCoupons
 } from '../database/seedData.js';
 
 // In-Memory Storage Instances for seamless demo mode per database target
@@ -46,7 +47,8 @@ function createSeedSnapshot() {
     return_status_history: [],
     notifications: [],
     feedback_moderation: [],
-    wishlists: JSON.parse(JSON.stringify(sampleWishlists || []))
+    wishlists: JSON.parse(JSON.stringify(sampleWishlists || [])),
+    coupons: JSON.parse(JSON.stringify(sampleCoupons || []))
   };
 }
 
@@ -585,6 +587,42 @@ export async function deactivateUser(userId, dbType = 'postgresql') {
 // PRODUCTS OPERATIONS
 // ---------------------------------------------------
 
+export function getProductVariants(product) {
+  if (!product) return [];
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    return product.variants;
+  }
+
+  const basePrice = parseFloat(product.mrp || 0);
+  const baseStock = parseInt(product.stock_qty || 20);
+  const cat = (product.category_name || '').toLowerCase();
+  const name = (product.product_name || '').toLowerCase();
+
+  if (cat.includes('cloth') || cat.includes('fashion') || cat.includes('apparel') || cat.includes('shirt') || cat.includes('shoe') || cat.includes('wear')) {
+    return [
+      { sku: `${product.product_id}-S`, name: 'Small (S)', size: 'S', color: 'Midnight Black', colorHex: '#111111', price: basePrice, stock: Math.max(5, Math.floor(baseStock * 0.25)) },
+      { sku: `${product.product_id}-M`, name: 'Medium (M)', size: 'M', color: 'Midnight Black', colorHex: '#111111', price: basePrice, stock: Math.max(10, Math.floor(baseStock * 0.4)) },
+      { sku: `${product.product_id}-L`, name: 'Large (L)', size: 'L', color: 'Champagne Gold', colorHex: '#C6A15B', price: basePrice, stock: Math.max(8, Math.floor(baseStock * 0.35)) },
+      { sku: `${product.product_id}-XL`, name: 'Extra Large (XL)', size: 'XL', color: 'Royal Navy', colorHex: '#1E3A8A', price: Math.round(basePrice * 1.05), stock: Math.max(4, Math.floor(baseStock * 0.2)) }
+    ];
+  }
+
+  if (cat.includes('mobile') || cat.includes('phone') || cat.includes('laptop') || cat.includes('electronic') || cat.includes('audio') || cat.includes('tech') || name.includes('wireless') || name.includes('laptop') || name.includes('pad')) {
+    return [
+      { sku: `${product.product_id}-128-BLK`, name: '128GB • Midnight Black', storage: '128GB', color: 'Midnight Black', colorHex: '#111111', price: basePrice, stock: Math.max(10, Math.floor(baseStock * 0.4)) },
+      { sku: `${product.product_id}-256-GLD`, name: '256GB • Royal Gold', storage: '256GB', color: 'Champagne Gold', colorHex: '#C6A15B', price: Math.round(basePrice * 1.15), stock: Math.max(8, Math.floor(baseStock * 0.35)) },
+      { sku: `${product.product_id}-512-SLV`, name: '512GB • Titanium Silver', storage: '512GB', color: 'Titanium Silver', colorHex: '#9E9E9E', price: Math.round(basePrice * 1.30), stock: Math.max(4, Math.floor(baseStock * 0.25)) }
+    ];
+  }
+
+  // Universal Luxury default editions
+  return [
+    { sku: `${product.product_id}-STD`, name: 'Classic Standard Edition', edition: 'Standard', color: 'Midnight Black', colorHex: '#111111', price: basePrice, stock: Math.max(8, Math.floor(baseStock * 0.5)) },
+    { sku: `${product.product_id}-PRO`, name: 'Prestige Pro Edition', edition: 'Pro Signature', color: 'Champagne Gold', colorHex: '#C6A15B', price: Math.round(basePrice * 1.12), stock: Math.max(5, Math.floor(baseStock * 0.3)) },
+    { sku: `${product.product_id}-MAX`, name: 'Royal Bespoke Collector Edition', edition: 'Bespoke Max', color: 'Titanium Silver', colorHex: '#9E9E9E', price: Math.round(basePrice * 1.25), stock: Math.max(2, Math.floor(baseStock * 0.2)) }
+  ];
+}
+
 export async function getAllProducts(filters = {}, dbType = 'postgresql') {
   const normType = normalizeDbType(dbType);
   const store = getStore(dbType);
@@ -645,7 +683,10 @@ export async function getAllProducts(filters = {}, dbType = 'postgresql') {
     result.sort((a, b) => a.product_name.localeCompare(b.product_name));
   }
 
-  return result;
+  return result.map(p => ({
+    ...p,
+    variants: getProductVariants(p)
+  }));
 }
 
 export async function getProductById(productId, dbType = 'postgresql') {
@@ -661,9 +702,87 @@ export async function getProductById(productId, dbType = 'postgresql') {
 
   return {
     ...prod,
+    variants: getProductVariants(prod),
     reviews,
     avg_rating: avgRating,
     total_reviews: reviews.length
+  };
+}
+
+// ---------------------------------------------------
+// FREQUENTLY BOUGHT TOGETHER RECOMMENDATION ENGINE
+// ---------------------------------------------------
+export async function getFrequentlyBoughtTogether(productId, dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+  const targetProduct = await getProductById(productId, dbType);
+  if (!targetProduct) return null;
+
+  const allProducts = await getAllProducts({}, dbType);
+  const coOccurCounts = {};
+
+  // 1. Relational co-purchase query on order_item
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    try {
+      const pool = getPostgresPool();
+      const res = await pool.query(`
+        SELECT oi2.product_id, COUNT(*) AS co_count
+        FROM order_item oi1
+        JOIN order_item oi2 ON oi1.order_id = oi2.order_id AND oi1.product_id != oi2.product_id
+        WHERE oi1.product_id = $1
+        GROUP BY oi2.product_id
+        ORDER BY co_count DESC
+        LIMIT 4
+      `, [productId]);
+      res.rows.forEach(r => {
+        coOccurCounts[r.product_id] = parseInt(r.co_count) || 1;
+      });
+    } catch (_) {}
+  }
+
+  // 2. In-memory / MongoDB snapshot scan of co-purchases
+  if (Object.keys(coOccurCounts).length === 0) {
+    const ordersWithTarget = new Set(
+      store.order_item.filter(oi => oi.product_id === productId).map(oi => oi.order_id)
+    );
+
+    store.order_item.forEach(oi => {
+      if (ordersWithTarget.has(oi.order_id) && oi.product_id !== productId) {
+        coOccurCounts[oi.product_id] = (coOccurCounts[oi.product_id] || 0) + (oi.quantity || 1);
+      }
+    });
+  }
+
+  let companionIds = Object.keys(coOccurCounts).sort((a, b) => coOccurCounts[b] - coOccurCounts[a]);
+  let companions = companionIds.map(id => allProducts.find(p => p.product_id === id && p.is_active)).filter(Boolean);
+
+  // If fewer than 2 companions found from order history, supplement from same category
+  if (companions.length < 2) {
+    const sameCat = allProducts.filter(p => p.category_id === targetProduct.category_id && p.product_id !== productId && p.is_active && !companions.some(c => c.product_id === p.product_id));
+    companions = [...companions, ...sameCat].slice(0, 3);
+  }
+
+  // If still fewer than 2, supplement with other top catalog items
+  if (companions.length < 2) {
+    const otherTop = allProducts.filter(p => p.product_id !== productId && p.is_active && !companions.some(c => c.product_id === p.product_id));
+    companions = [...companions, ...otherTop].slice(0, 2);
+  }
+
+  const selectedCompanions = companions.slice(0, 2);
+  const targetMrp = parseFloat(targetProduct.mrp || 0);
+  const companionsMrp = selectedCompanions.reduce((sum, c) => sum + parseFloat(c.mrp || 0), 0);
+  const totalMrp = targetMrp + companionsMrp;
+  const discountPercent = 10; // 10% combo bundle discount
+  const bundlePrice = Math.round(totalMrp * (1 - discountPercent / 100));
+  const savings = totalMrp - bundlePrice;
+
+  return {
+    target_product: targetProduct,
+    companions: selectedCompanions,
+    total_mrp: totalMrp,
+    bundle_price: bundlePrice,
+    savings,
+    discount_percent: discountPercent
   };
 }
 
@@ -747,7 +866,7 @@ export async function getCartByCustomerId(customerId, dbType = 'postgresql') {
   const items = store.cart_item.filter(ci => ci.cart_id === cart.cart_id);
   const detailedItems = items.map(ci => {
     const product = store.products.find(p => p.product_id === ci.product_id);
-    const unitPrice = product ? parseFloat(product.mrp) : 0;
+    const unitPrice = ci.attributes?.price ? parseFloat(ci.attributes.price) : (product ? parseFloat(product.mrp) : 0);
     const subtotal = unitPrice * ci.quantity;
     return {
       cart_id: ci.cart_id,
@@ -1098,7 +1217,12 @@ export async function createOrder(orderPayload, dbType = 'postgresql') {
 
   const cust = store.customers.find(c => c.customer_id === orderPayload.customer_id);
   const custEmail = cust ? cust.email : orderPayload.customer_id;
-  const orderAmount = cart.grand_total;
+
+  const subtotal = cart.grand_total;
+  const discount = parseFloat(orderPayload.discount_amount || 0);
+  const deliveryFee = parseFloat(orderPayload.delivery_fee || 0);
+  const giftFee = orderPayload.gift_wrap ? 49 : 0;
+  const finalAmount = Math.max(0, parseFloat((subtotal + deliveryFee + giftFee - discount).toFixed(2)));
 
   const orderRecord = {
     order_id: orderId,
@@ -1108,7 +1232,16 @@ export async function createOrder(orderPayload, dbType = 'postgresql') {
     order_date: orderDate,
     shipping_date: null,
     approx_delivery_date: null,
-    order_amount: orderAmount,
+    order_amount: finalAmount,
+    total_amount: finalAmount,
+    subtotal_amount: subtotal,
+    coupon_code: orderPayload.coupon_code || null,
+    discount_amount: discount,
+    delivery_tier: orderPayload.delivery_tier || 'standard',
+    delivery_fee: deliveryFee,
+    is_gift: Boolean(orderPayload.is_gift),
+    gift_wrap: Boolean(orderPayload.gift_wrap),
+    gift_message: orderPayload.gift_message || null,
     order_status: 'ORDER_PLACED'
   };
 
@@ -1132,11 +1265,11 @@ export async function createOrder(orderPayload, dbType = 'postgresql') {
 
   // Create Payment record (Order -> Payment 1:N)
   const paymentRecord = {
-    payment_id: `pay-${Date.now()}`,
+    payment_id: orderPayload.razorpay_payment_id || `pay-${Date.now()}`,
     order_id: orderId,
     payment_mode: orderPayload.payment_mode || 'Credit/Debit Card',
     payment_status: 'Completed',
-    amount: orderAmount,
+    amount: finalAmount,
     date_of_payment: orderDate
   };
   store.payments.unshift(paymentRecord);
@@ -1144,7 +1277,9 @@ export async function createOrder(orderPayload, dbType = 'postgresql') {
   // Log order history entry
   await addOrderHistoryRecord({
     order_id: orderId,
-    action: 'Order Placed by Customer',
+    action: orderPayload.coupon_code 
+      ? `Order Placed by Customer (Coupon: ${orderPayload.coupon_code}, Saved ₹${discount})` 
+      : 'Order Placed by Customer',
     performed_by: custEmail,
     previous_status: null,
     new_status: 'ORDER_PLACED'
@@ -1261,7 +1396,30 @@ export async function updateOrderStatus(orderId, status, performedBy = 'System',
     }
 
     let actionText = `Order Status updated to ${status}`;
-    if (upperStatus === 'SHIPPED' || upperStatus === 'ORDER SHIPPED') {
+    if (upperStatus === 'CANCELLED') {
+      // Auto-Restock items back into product inventory
+      const orderItems = store.order_item.filter(oi => oi.order_id === orderId);
+      orderItems.forEach(item => {
+        const prod = store.products.find(p => p.product_id === item.product_id);
+        if (prod) {
+          prod.stock_qty = (parseInt(prod.stock_qty) || 0) + (parseInt(item.quantity) || 1);
+        }
+      });
+      actionText = `Order Cancelled by Customer - ${orderItems.length} item(s) restocked to inventory`;
+
+      const normType = normalizeDbType(dbType);
+      if (normType === 'postgresql' && await testPostgresConnection()) {
+        try {
+          const pool = getPostgresPool();
+          await pool.query(`
+            UPDATE products p
+            SET stock_qty = p.stock_qty + oi.quantity
+            FROM order_item oi
+            WHERE oi.order_id = $1 AND oi.product_id = p.product_id
+          `, [orderId]);
+        } catch (_) {}
+      }
+    } else if (upperStatus === 'SHIPPED' || upperStatus === 'ORDER SHIPPED') {
       actionText = `Order Status updated to SHIPPED (Approx Delivery: ${ord.approx_delivery_date})`;
     } else if (upperStatus === 'ORDER_CONFIRMED') {
       actionText = `Order Confirmed & Placed by Seller`;
@@ -1293,6 +1451,66 @@ export async function updateOrderStatus(orderId, status, performedBy = 'System',
 export async function getAllPayments(dbType = 'postgresql') {
   const store = getStore(dbType);
   return store.payments;
+}
+
+// ---------------------------------------------------
+// COUPONS & PROMO CODES OPERATIONS
+// ---------------------------------------------------
+
+export async function getActiveCoupons(dbType = 'postgresql') {
+  const normType = normalizeDbType(dbType);
+  const store = getStore(dbType);
+
+  if (normType === 'postgresql' && await testPostgresConnection()) {
+    try {
+      const pool = getPostgresPool();
+      const res = await pool.query('SELECT * FROM coupons WHERE is_active = true ORDER BY discount_value DESC');
+      if (res.rows && res.rows.length > 0) {
+        return res.rows;
+      }
+    } catch (_) {}
+  }
+
+  return (store.coupons || []).filter(c => c.is_active);
+}
+
+export async function validateCouponCode(code, cartTotal = 0, dbType = 'postgresql') {
+  if (!code) throw new Error('Please enter a coupon code.');
+  const cleanCode = code.trim().toUpperCase();
+  const activeCoupons = await getActiveCoupons(dbType);
+  const coupon = activeCoupons.find(c => c.code.toUpperCase() === cleanCode);
+
+  if (!coupon) {
+    throw new Error(`Invalid coupon code '${cleanCode}'. Available: PACIFIC20, GOLD500, WELCOME10, FESTIVE15`);
+  }
+
+  const subtotal = Number(cartTotal) || 0;
+  const minAmount = Number(coupon.min_order_amount || coupon.minCart || 0);
+  if (subtotal < minAmount) {
+    throw new Error(`Coupon '${coupon.code}' requires a minimum order of ₹${minAmount}. Add ₹${(minAmount - subtotal).toFixed(0)} more!`);
+  }
+
+  let discountAmount = 0;
+  const discType = coupon.discount_type || coupon.type;
+  const discVal = Number(coupon.discount_value || coupon.value);
+  const maxDisc = Number(coupon.max_discount || coupon.maxDiscount || Infinity);
+
+  if (discType === 'percentage') {
+    discountAmount = Math.round((subtotal * discVal) / 100);
+    if (maxDisc && discountAmount > maxDisc) {
+      discountAmount = maxDisc;
+    }
+  } else {
+    discountAmount = discVal;
+  }
+
+  return {
+    valid: true,
+    code: coupon.code,
+    discountAmount,
+    description: coupon.description,
+    finalTotal: Math.max(0, subtotal - discountAmount)
+  };
 }
 
 // ---------------------------------------------------

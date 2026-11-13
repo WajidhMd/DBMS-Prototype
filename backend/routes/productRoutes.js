@@ -6,6 +6,7 @@ import {
   getProductQA,
   postProductQuestion,
   subscribeStockAlert,
+  getProductRecommendations,
   createProduct,
   updateProduct,
   deleteProduct
@@ -18,6 +19,7 @@ router.get('/suggestions', getSearchSuggestions);
 router.get('/:id/qa', getProductQA);
 router.post('/:id/qa', authenticateToken, postProductQuestion);
 router.post('/:id/notify', subscribeStockAlert);
+router.get('/:id/recommendations', getProductRecommendations);
 
 router.get('/', getProducts);
 router.get('/:id', getProductById);

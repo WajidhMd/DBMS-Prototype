@@ -18,6 +18,7 @@ import {
   Tag
 } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
+import RazorpayModal from '../components/RazorpayModal';
 
 const DELIVERY_TIERS = [
   { id: 'standard', name: 'Standard Delivery', time: '3-5 Business Days', fee: 0, tag: 'FREE' },
@@ -33,12 +34,13 @@ export default function Checkout() {
   const [cart, setCart] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
-  const [paymentMode, setPaymentMode] = useState('Credit/Debit Card');
+  const [paymentMode, setPaymentMode] = useState('Razorpay (Test Mode)');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [createdOrder, setCreatedOrder] = useState(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showRazorpayModal, setShowRazorpayModal] = useState(false);
 
   // Delivery & Gifting Options
   const [deliveryTier, setDeliveryTier] = useState('standard');
@@ -135,11 +137,16 @@ export default function Checkout() {
   };
 
   const handlePlaceOrder = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setError('');
 
     if (!selectedAddressId) {
       setError('Please select or add a shipping address.');
+      return;
+    }
+
+    if (paymentMode.includes('Razorpay')) {
+      setShowRazorpayModal(true);
       return;
     }
 
@@ -149,9 +156,12 @@ export default function Checkout() {
         address_id: selectedAddressId,
         payment_mode: paymentMode,
         delivery_tier: deliveryTier,
+        delivery_fee: deliveryFee,
         is_gift: isGift,
         gift_wrap: addGiftWrap,
-        gift_message: giftMessage
+        gift_message: giftMessage,
+        coupon_code: appliedCoupon?.code || null,
+        discount_amount: appliedCoupon?.discountAmount || 0
       });
 
       // Clear applied coupon from storage upon order placement
@@ -159,6 +169,34 @@ export default function Checkout() {
       setCreatedOrder(res.data);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to place order.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRazorpaySuccess = async (rzpData) => {
+    try {
+      setSubmitting(true);
+      setShowRazorpayModal(false);
+
+      const res = await api.post('/orders', {
+        address_id: selectedAddressId,
+        payment_mode: `Razorpay (${rzpData.payment_method || 'Test Mode'})`,
+        delivery_tier: deliveryTier,
+        delivery_fee: deliveryFee,
+        is_gift: isGift,
+        gift_wrap: addGiftWrap,
+        gift_message: giftMessage,
+        coupon_code: appliedCoupon?.code || null,
+        discount_amount: appliedCoupon?.discountAmount || 0,
+        razorpay_payment_id: rzpData.razorpay_payment_id,
+        razorpay_order_id: rzpData.razorpay_order_id
+      });
+
+      sessionStorage.removeItem('pacific_applied_coupon');
+      setCreatedOrder(res.data);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to complete order after Razorpay verification.');
     } finally {
       setSubmitting(false);
     }
@@ -463,32 +501,47 @@ export default function Checkout() {
               <CreditCard size={20} color="var(--color-primary)" /> Payment Method
             </h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              {['Credit/Debit Card', 'UPI', 'Cash on Delivery', 'Net Banking'].map(mode => (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+              {[
+                { id: 'Razorpay (Test Mode)', name: 'Razorpay Instant Pay (Test Mode)', desc: 'Fast checkout via UPI QR, Google Pay, PhonePe, Cards, NetBanking', badge: 'RECOMMENDED', badgeColor: '#0c66e4' },
+                { id: 'Cash on Delivery', name: 'Cash on Delivery (COD)', desc: 'Pay with cash upon doorstep delivery', badge: 'AVAILABLE', badgeColor: '#16a34a' },
+                { id: 'Credit/Debit Card', name: 'Standard Credit / Debit Card', desc: 'Direct merchant card processing', badge: null },
+                { id: 'UPI Direct', name: 'UPI Direct Transfer', desc: 'Direct VPA transfer', badge: null }
+              ].map(mode => (
                 <label
-                  key={mode}
+                  key={mode.id}
                   style={{
                     backgroundColor: 'var(--bg-input)',
-                    border: `1px solid ${paymentMode === mode ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                    border: `1px solid ${paymentMode === mode.id ? 'var(--color-primary)' : 'var(--border-color)'}`,
                     borderRadius: 'var(--radius-md)',
                     padding: '0.85rem 1rem',
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     gap: '0.5rem',
                     cursor: 'pointer',
-                    fontSize: '0.88rem',
-                    fontWeight: 600
+                    fontSize: '0.88rem'
                   }}
                 >
-                  <input
-                    type="radio"
-                    name="payment_mode"
-                    value={mode}
-                    checked={paymentMode === mode}
-                    onChange={(e) => setPaymentMode(e.target.value)}
-                    style={{ accentColor: 'var(--color-primary)' }}
-                  />
-                  {mode}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <input
+                      type="radio"
+                      name="payment_mode"
+                      value={mode.id}
+                      checked={paymentMode === mode.id}
+                      onChange={(e) => setPaymentMode(e.target.value)}
+                      style={{ accentColor: 'var(--color-primary)' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{mode.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{mode.desc}</div>
+                    </div>
+                  </div>
+                  {mode.badge && (
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '4px', background: mode.badgeColor, color: '#fff' }}>
+                      {mode.badge}
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
@@ -556,6 +609,37 @@ export default function Checkout() {
                 </button>
               </div>
             )}
+            {!appliedCoupon && (
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>Try:</span>
+                {[
+                  { code: 'PACIFIC20', label: 'PACIFIC20 (20% OFF)' },
+                  { code: 'GOLD500', label: 'GOLD500 (₹500 OFF)' },
+                  { code: 'WELCOME10', label: 'WELCOME10 (10% OFF)' },
+                  { code: 'FREESHIP', label: 'FREESHIP' }
+                ].map(p => (
+                  <button
+                    key={p.code}
+                    type="button"
+                    onClick={() => {
+                      setCheckoutCouponCode(p.code);
+                    }}
+                    style={{
+                      background: 'rgba(212, 175, 55, 0.1)',
+                      border: '1px dashed rgba(212, 175, 55, 0.4)',
+                      color: 'var(--color-primary)',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {checkoutCouponMsg.text && (
               <div style={{ fontSize: '0.72rem', marginTop: '0.35rem', color: checkoutCouponMsg.type === 'error' ? '#f87171' : '#22c55e' }}>
                 {checkoutCouponMsg.text}
@@ -601,7 +685,7 @@ export default function Checkout() {
           </div>
 
           <button onClick={handlePlaceOrder} className="btn-primary-block" style={{ padding: '0.85rem' }} disabled={submitting}>
-            <ShieldCheck size={18} /> {submitting ? 'Creating Order...' : 'Confirm & Place Order'}
+            <ShieldCheck size={18} /> {submitting ? 'Creating Order...' : (paymentMode.includes('Razorpay') ? `Pay ₹${finalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })} via Razorpay` : 'Confirm & Place Order')}
           </button>
         </div>
       </div>
@@ -681,6 +765,16 @@ export default function Checkout() {
             </form>
           </div>
         </div>
+      )}
+      {/* Razorpay Test-Mode Payment Gateway Modal */}
+      {showRazorpayModal && (
+        <RazorpayModal
+          isOpen={showRazorpayModal}
+          onClose={() => setShowRazorpayModal(false)}
+          amount={finalPayable}
+          customerEmail={user?.email}
+          onSuccess={handleRazorpaySuccess}
+        />
       )}
     </div>
   );

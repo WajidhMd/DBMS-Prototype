@@ -722,9 +722,12 @@ export default function Orders() {
               <XCircle size={24} color="#ef4444" />
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>Cancel Order #{cancelOrderObj.order_number}</h3>
             </div>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
               Are you sure you want to cancel this order? Instant refund of <strong>₹{parseFloat(cancelOrderObj.order_amount).toFixed(2)}</strong> will be credited directly to your payment source.
             </p>
+            <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '6px', padding: '0.6rem 0.75rem', marginBottom: '1.25rem', fontSize: '0.8rem', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <CheckCircle size={15} /> <strong>Auto-Restock:</strong> {cancelOrderObj.items?.length || 1} item(s) will be atomically returned to store inventory.
+            </div>
 
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
               <label className="form-label">Reason for Cancellation</label>

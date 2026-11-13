@@ -56,9 +56,14 @@ export default function ProductDetails() {
   const [notification, setNotification] = useState(null);
 
   // Variant States
+  const [selectedVariantObj, setSelectedVariantObj] = useState(null);
   const [selectedColor, setSelectedColor] = useState(PRODUCT_COLORS[0]);
   const [selectedVariant, setSelectedVariant] = useState(PRODUCT_VARIANTS[0]);
   const [isSavedForLater, setIsSavedForLater] = useState(false);
+
+  // Frequently Bought Together Recommendations State
+  const [recommendations, setRecommendations] = useState(null);
+  const [selectedRecIds, setSelectedRecIds] = useState([]);
 
   const getVariantOptions = () => {
     if (!product) return PRODUCT_VARIANTS;
@@ -158,6 +163,15 @@ export default function ProductDetails() {
       const prodData = res.data || null;
       setProduct(prodData);
 
+      if (prodData?.variants && prodData.variants.length > 0) {
+        setSelectedVariantObj(prodData.variants[0]);
+        setSelectedVariant(prodData.variants[0].name);
+        if (prodData.variants[0].color) {
+          const matchedColor = PRODUCT_COLORS.find(c => c.name.toLowerCase() === prodData.variants[0].color.toLowerCase()) || { name: prodData.variants[0].color, hex: prodData.variants[0].colorHex || '#111' };
+          setSelectedColor(matchedColor);
+        }
+      }
+
       const revRes = await api.get(`/reviews?product_id=${id}`);
       setReviews(revRes.data || []);
 
@@ -170,12 +184,15 @@ export default function ProductDetails() {
           setRecentlyViewed(updated.filter(p => p.product_id !== prodData.product_id));
         } catch (_) {}
 
-        // Fetch bundle recommendation from catalog
+        // Fetch "Frequently Bought Together" SQL recommendations
         try {
-          const allRes = await api.get('/products');
-          const others = (allRes.data || []).filter(p => p.product_id !== prodData.product_id);
-          if (others.length > 0) {
-            setBundleProduct(others[Math.floor(Math.random() * others.length)]);
+          const recRes = await api.get(`/products/${id}/recommendations`);
+          if (recRes.data) {
+            setRecommendations(recRes.data);
+            setSelectedRecIds(recRes.data.companions?.map(c => c.product_id) || []);
+            if (recRes.data.companions && recRes.data.companions.length > 0) {
+              setBundleProduct(recRes.data.companions[0]);
+            }
           }
         } catch (_) {}
       }
@@ -247,28 +264,53 @@ export default function ProductDetails() {
     }
   };
 
+  const currentPrice = selectedVariantObj?.price || (product ? parseFloat(product.mrp) : 0);
+  const currentStock = selectedVariantObj?.stock !== undefined ? selectedVariantObj.stock : (product ? product.stock_qty : 0);
+
   const handleAddToCart = async () => {
-    if (product.stock_qty <= 0) {
-      setNotification({ message: 'Product is currently out of stock.', type: 'error' });
+    if (currentStock <= 0) {
+      setNotification({ message: 'Selected variant is currently out of stock.', type: 'error' });
       return;
     }
     const attributes = {
       color: selectedColor?.name,
-      variant: selectedVariant
+      variant: selectedVariantObj?.name || selectedVariant,
+      sku: selectedVariantObj?.sku || `${product.product_id}-VAR`,
+      price: currentPrice
     };
     const res = await addToCart(product, quantity, attributes);
     if (res.success) {
-      setNotification({ message: `Added ${quantity} × "${product.product_name}" (${selectedColor.name}, ${selectedVariant}) to cart!`, type: 'success' });
+      setNotification({ message: `Added ${quantity} × "${product.product_name}" (${attributes.variant}) to cart!`, type: 'success' });
       setTimeout(() => setNotification(null), 3500);
     }
   };
 
+  const handleToggleCompanion = (companionId) => {
+    if (selectedRecIds.includes(companionId)) {
+      setSelectedRecIds(selectedRecIds.filter(cid => cid !== companionId));
+    } else {
+      setSelectedRecIds([...selectedRecIds, companionId]);
+    }
+  };
+
   const handleAddBundleToCart = async () => {
-    if (!bundleProduct) return;
-    await addToCart(product, 1);
-    await addToCart(bundleProduct, 1);
+    if (!product) return;
+    const companionItems = (recommendations?.companions || []).filter(c => selectedRecIds.includes(c.product_id));
+    
+    // Add primary target product
+    await addToCart(product, 1, {
+      color: selectedColor?.name,
+      variant: selectedVariantObj?.name || selectedVariant,
+      price: currentPrice
+    });
+
+    // Add selected companions
+    for (const comp of companionItems) {
+      await addToCart(comp, 1);
+    }
+
     setNotification({
-      message: `Added bundle: "${product.product_name}" + "${bundleProduct.product_name}" to your cart with 10% combo savings!`,
+      message: `Added bundle: "${product.product_name}" + ${companionItems.length} companion item(s) to your cart with 10% combo savings!`,
       type: 'success'
     });
     setTimeout(() => setNotification(null), 4000);
@@ -480,17 +522,17 @@ export default function ProductDetails() {
             {/* Price Presentation */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div style={{ fontSize: '2.1rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                ₹{parseFloat(product.mrp).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{parseFloat(currentPrice).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <div style={{ fontSize: '1.15rem', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
-                ₹{(parseFloat(product.mrp) * 1.18).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{(parseFloat(currentPrice) * 1.18).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '0.9rem' }}>Inclusive of all taxes</span>
             </div>
 
             {/* Stock Badges / Thresholds */}
             <div style={{ marginBottom: '1.25rem' }}>
-              {product.stock_qty <= 0 ? (
+              {currentStock <= 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span className="badge badge-danger" style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}>
                     Currently Out of Stock
@@ -515,7 +557,7 @@ export default function ProductDetails() {
                     <Bell size={13} /> Notify Me When In Stock
                   </button>
                 </div>
-              ) : product.stock_qty <= 5 ? (
+              ) : currentStock <= 5 ? (
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -528,11 +570,11 @@ export default function ProductDetails() {
                   fontSize: '0.82rem',
                   fontWeight: 700
                 }}>
-                  ⚡ Only {product.stock_qty} left in stock - order soon!
+                  ⚡ Only {currentStock} left in stock - order soon!
                 </span>
               ) : (
                 <span className="badge badge-success" style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}>
-                  In Stock ({product.stock_qty} units ready to dispatch)
+                  In Stock ({currentStock} units ready to dispatch)
                 </span>
               )}
             </div>
@@ -564,31 +606,49 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {/* Product Variants: Editions / Capacities */}
+            {/* Product Variants: Options / Capacities / Sizes */}
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
                 Variant / Size / Storage:
               </div>
               <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-                {getVariantOptions().map(v => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setSelectedVariant(v)}
-                    style={{
-                      padding: '0.4rem 0.85rem',
-                      borderRadius: '6px',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      backgroundColor: selectedVariant === v ? 'var(--color-primary)' : 'rgba(255,255,255,0.06)',
-                      color: selectedVariant === v ? '#000' : 'var(--text-primary)',
-                      border: `1px solid ${selectedVariant === v ? 'var(--color-primary)' : 'var(--border-color)'}`,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {v}
-                  </button>
-                ))}
+                {(product?.variants && product.variants.length > 0 ? product.variants : getVariantOptions().map(v => ({ name: v, price: product.mrp }))).map(v => {
+                  const isSelected = selectedVariantObj?.name === v.name || selectedVariant === v.name;
+                  return (
+                    <button
+                      key={v.sku || v.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedVariantObj(v);
+                        setSelectedVariant(v.name);
+                        if (v.color) {
+                          const matched = PRODUCT_COLORS.find(c => c.name.toLowerCase() === v.color.toLowerCase()) || { name: v.color, hex: v.colorHex || '#111' };
+                          setSelectedColor(matched);
+                        }
+                      }}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '6px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        backgroundColor: isSelected ? 'var(--color-primary)' : 'rgba(255,255,255,0.06)',
+                        color: isSelected ? '#000' : 'var(--text-primary)',
+                        border: `1px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem'
+                      }}
+                    >
+                      <span>{v.name}</span>
+                      {v.price && (
+                        <span style={{ fontSize: '0.72rem', opacity: isSelected ? 0.9 : 0.7, fontWeight: 700 }}>
+                          (₹{Number(v.price).toLocaleString('en-IN')})
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -767,37 +827,127 @@ export default function ProductDetails() {
         </div>
       </div>
 
-      {/* Frequently Bought Together Bundle */}
-      {bundleProduct && (
+      {/* Frequently Bought Together Recommendation Engine */}
+      {recommendations && (recommendations.companions || []).length > 0 && (
         <div style={{
           backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-lg)',
-          padding: '1.5rem',
-          marginBottom: '2rem'
+          padding: '1.75rem',
+          marginBottom: '2rem',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
         }}>
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Sparkles size={18} color="var(--color-primary)" /> Frequently Bought Together
-          </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <img src={product.image_url} alt={product.product_name} style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', background: '#111' }} />
-              <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)' }}>+</span>
-              <img src={bundleProduct.image_url} alt={bundleProduct.product_name} style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', background: '#111' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f8fafc' }}>
+                <Sparkles size={20} color="var(--color-primary)" /> Frequently Bought Together
+              </h2>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Relational co-purchase recommendation engine • Curated luxury bundle
+              </p>
+            </div>
+            <span className="badge badge-success" style={{ fontWeight: 700, fontSize: '0.75rem' }}>
+              ⚡ 10% Bundle Savings Applied
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+            {/* Target Product */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.75rem',
+              background: 'var(--bg-input)',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <img
+                src={product.image_url}
+                alt={product.product_name}
+                style={{ width: '68px', height: '68px', objectFit: 'cover', borderRadius: '6px' }}
+              />
+              <div style={{ maxWidth: '170px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 700 }}>THIS ITEM</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {product.product_name}
+                </div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.2rem' }}>
+                  ₹{Number(currentPrice).toLocaleString('en-IN')}
+                </div>
+              </div>
             </div>
 
-            <div style={{ flex: 1, minWidth: '220px' }}>
-              <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>
-                {product.product_name} + {bundleProduct.product_name}
+            {/* Companion Products */}
+            {(recommendations.companions || []).map((comp) => {
+              const isChecked = selectedRecIds.includes(comp.product_id);
+              return (
+                <React.Fragment key={comp.product_id}>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>+</span>
+                  <div
+                    onClick={() => handleToggleCompanion(comp.product_id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem',
+                      background: 'var(--bg-input)',
+                      borderRadius: '8px',
+                      border: `1px solid ${isChecked ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                      cursor: 'pointer',
+                      opacity: isChecked ? 1 : 0.6,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {}}
+                      style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+                    />
+                    <img
+                      src={comp.image_url}
+                      alt={comp.product_name}
+                      style={{ width: '68px', height: '68px', objectFit: 'cover', borderRadius: '6px' }}
+                    />
+                    <div style={{ maxWidth: '170px' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{comp.brand}</div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {comp.product_name}
+                      </div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.2rem' }}>
+                        ₹{Number(comp.mrp).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+
+          {/* Bundle Price & Add to Cart Action */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            borderTop: '1px solid var(--border-color)',
+            paddingTop: '1.25rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Total Bundle Price for <strong>{selectedRecIds.length + 1} item{selectedRecIds.length > 0 ? 's' : ''}</strong>:
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginTop: '0.2rem' }}>
-                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                  ₹{(parseFloat(product.mrp) + parseFloat(bundleProduct.mrp) * 0.9).toFixed(2)}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginTop: '0.25rem' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                  ₹{Math.round((parseFloat(currentPrice) + (recommendations.companions || []).filter(c => selectedRecIds.includes(c.product_id)).reduce((sum, c) => sum + parseFloat(c.mrp || 0), 0)) * (selectedRecIds.length > 0 ? 0.90 : 1)).toLocaleString('en-IN')}
                 </span>
-                <span style={{ fontSize: '0.85rem', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
-                  ₹{(parseFloat(product.mrp) + parseFloat(bundleProduct.mrp)).toFixed(2)}
-                </span>
-                <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>Save 10% on Combo</span>
+                {selectedRecIds.length > 0 && (
+                  <span style={{ color: '#22c55e', fontWeight: 800, fontSize: '0.82rem' }}>
+                    (10% OFF Combo applied)
+                  </span>
+                )}
               </div>
             </div>
 
@@ -805,9 +955,9 @@ export default function ProductDetails() {
               type="button"
               onClick={handleAddBundleToCart}
               className="btn-primary-block"
-              style={{ width: 'auto', padding: '0.65rem 1.25rem', marginTop: 0 }}
+              style={{ width: 'auto', padding: '0.75rem 1.5rem', marginTop: 0, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              Add Both to Cart
+              <ShoppingBag size={16} /> Add All {selectedRecIds.length + 1} to Bag
             </button>
           </div>
         </div>

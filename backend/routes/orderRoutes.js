@@ -12,13 +12,19 @@ import {
   getHistory,
   assignOrder,
   cancelOrder,
-  exchangeOrder
+  exchangeOrder,
+  createRazorpayOrder,
+  verifyRazorpayPayment
 } from '../controllers/orderController.js';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.use(authenticateToken);
+
+// Razorpay Test-Mode Gateway
+router.post('/razorpay/create-order', authorizeRoles('CUSTOMER', 'ADMIN'), createRazorpayOrder);
+router.post('/razorpay/verify', authorizeRoles('CUSTOMER', 'ADMIN'), verifyRazorpayPayment);
 
 router.post('/', authorizeRoles('CUSTOMER', 'ADMIN'), createOrder);
 router.get('/', getOrders);

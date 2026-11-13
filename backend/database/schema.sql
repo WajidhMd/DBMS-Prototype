@@ -1,6 +1,7 @@
 -- PostgreSQL DDL Schema for E-Commerce Management System
 
 -- Drop tables if existing (in reverse dependency order)
+DROP TABLE IF EXISTS coupons CASCADE;
 DROP TABLE IF EXISTS wishlists CASCADE;
 DROP TABLE IF EXISTS feedback_moderation CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
@@ -125,6 +126,8 @@ CREATE TABLE orders (
     approx_delivery_date VARCHAR(50),
     courier_name VARCHAR(100),
     tracking_number VARCHAR(100),
+    coupon_code VARCHAR(50),
+    discount_amount NUMERIC(10, 2) DEFAULT 0,
     assigned_employee_id VARCHAR(36) REFERENCES employees(employee_id) ON DELETE SET NULL
 );
 
@@ -242,4 +245,18 @@ CREATE TABLE wishlists (
     product_id VARCHAR(36) NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, product_id)
+);
+
+-- 20. Coupons & Promo Codes Entity
+CREATE TABLE coupons (
+    coupon_id VARCHAR(50) PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    discount_type VARCHAR(20) NOT NULL CHECK (discount_type IN ('percentage', 'flat')),
+    discount_value NUMERIC(10, 2) NOT NULL,
+    min_order_amount NUMERIC(10, 2) DEFAULT 0,
+    max_discount NUMERIC(10, 2) DEFAULT NULL,
+    description TEXT,
+    expires_at TIMESTAMP DEFAULT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

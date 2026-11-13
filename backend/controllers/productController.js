@@ -3,7 +3,8 @@ import {
   getProductById as fetchProductById,
   createProduct as insertProduct,
   updateProduct as modifyProduct,
-  deleteProduct as removeProduct
+  deleteProduct as removeProduct,
+  getFrequentlyBoughtTogether
 } from '../services/dbAdapter.js';
 
 // In-memory Q&A Store initialized with realistic sample data
@@ -236,5 +237,18 @@ export async function deleteProduct(req, res) {
     return res.json({ message: 'Product deleted successfully.' });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to delete product.' });
+  }
+}
+
+export async function getProductRecommendations(req, res) {
+  try {
+    const { id } = req.params;
+    const recommendations = await getFrequentlyBoughtTogether(id, req.dbType);
+    if (!recommendations) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+    return res.json(recommendations);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to fetch recommendations.' });
   }
 }
