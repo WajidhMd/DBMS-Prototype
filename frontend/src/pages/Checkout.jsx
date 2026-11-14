@@ -34,13 +34,13 @@ export default function Checkout() {
   const [cart, setCart] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
-  const [paymentMode, setPaymentMode] = useState('Razorpay (Test Mode)');
+  const [paymentMode, setPaymentMode] = useState('Online Payment');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [createdOrder, setCreatedOrder] = useState(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [showRazorpayModal, setShowRazorpayModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Delivery & Gifting Options
   const [deliveryTier, setDeliveryTier] = useState('standard');
@@ -162,8 +162,8 @@ export default function Checkout() {
       return;
     }
 
-    if (paymentMode.includes('Razorpay')) {
-      setShowRazorpayModal(true);
+    if (paymentMode === 'Online Payment' || paymentMode.includes('Online')) {
+      setShowPaymentModal(true);
       return;
     }
 
@@ -191,14 +191,14 @@ export default function Checkout() {
     }
   };
 
-  const handleRazorpaySuccess = async (rzpData) => {
+  const handlePaymentSuccess = async (payData) => {
     try {
       setSubmitting(true);
-      setShowRazorpayModal(false);
+      setShowPaymentModal(false);
 
       const res = await api.post('/orders', {
         address_id: selectedAddressId,
-        payment_mode: `Razorpay (${rzpData.payment_method || 'Test Mode'})`,
+        payment_mode: payData.payment_method || 'Online Payment',
         delivery_tier: deliveryTier,
         delivery_fee: deliveryFee,
         is_gift: isGift,
@@ -206,14 +206,14 @@ export default function Checkout() {
         gift_message: giftMessage,
         coupon_code: appliedCoupon?.code || null,
         discount_amount: appliedCoupon?.discountAmount || 0,
-        razorpay_payment_id: rzpData.razorpay_payment_id,
-        razorpay_order_id: rzpData.razorpay_order_id
+        razorpay_payment_id: payData.razorpay_payment_id,
+        razorpay_order_id: payData.razorpay_order_id
       });
 
       sessionStorage.removeItem('pacific_applied_coupon');
       setCreatedOrder(res.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to complete order after Razorpay verification.');
+      setError(err.response?.data?.error || 'Failed to complete order after payment.');
     } finally {
       setSubmitting(false);
     }
@@ -520,10 +520,8 @@ export default function Checkout() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
               {[
-                { id: 'Razorpay (Test Mode)', name: 'Razorpay Instant Pay (Test Mode)', desc: 'Fast checkout via UPI QR, Google Pay, PhonePe, Cards, NetBanking', badge: 'RECOMMENDED', badgeColor: '#0c66e4' },
-                { id: 'Cash on Delivery', name: 'Cash on Delivery (COD)', desc: 'Pay with cash upon doorstep delivery', badge: 'AVAILABLE', badgeColor: '#16a34a' },
-                { id: 'Credit/Debit Card', name: 'Standard Credit / Debit Card', desc: 'Direct merchant card processing', badge: null },
-                { id: 'UPI Direct', name: 'UPI Direct Transfer', desc: 'Direct VPA transfer', badge: null }
+                { id: 'Online Payment', name: 'Instant Online Payment (Cards, UPI, NetBanking)', desc: 'Fast and secure checkout with 256-bit encryption', badge: 'RECOMMENDED', badgeColor: 'var(--color-primary, #d4af37)' },
+                { id: 'Cash on Delivery', name: 'Cash on Delivery (COD)', desc: 'Pay with cash upon doorstep delivery', badge: 'AVAILABLE', badgeColor: '#16a34a' }
               ].map(mode => (
                 <label
                   key={mode.id}
@@ -715,7 +713,7 @@ export default function Checkout() {
           </div>
 
           <button onClick={handlePlaceOrder} className="btn-primary-block" style={{ padding: '0.85rem' }} disabled={submitting}>
-            <ShieldCheck size={18} /> {submitting ? 'Creating Order...' : (paymentMode.includes('Razorpay') ? `Pay ₹${finalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })} via Razorpay` : 'Confirm & Place Order')}
+            <ShieldCheck size={18} /> {submitting ? 'Creating Order...' : (paymentMode.includes('Online') ? `Pay ₹${finalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })} Securely` : 'Confirm & Place Order')}
           </button>
         </div>
       </div>
@@ -796,14 +794,14 @@ export default function Checkout() {
           </div>
         </div>
       )}
-      {/* Razorpay Test-Mode Payment Gateway Modal */}
-      {showRazorpayModal && (
+      {/* Secure Online Payment Gateway Modal */}
+      {showPaymentModal && (
         <RazorpayModal
-          isOpen={showRazorpayModal}
-          onClose={() => setShowRazorpayModal(false)}
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
           amount={finalPayable}
           customerEmail={user?.email}
-          onSuccess={handleRazorpaySuccess}
+          onSuccess={handlePaymentSuccess}
         />
       )}
     </div>
